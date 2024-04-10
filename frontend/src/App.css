@@ -1,0 +1,440 @@
+.App {
+  font-family: 'Arial', sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  min-height: 100vh; /* Full viewport height */
+}
+
+/* ... existing styles ... */
+
+/* Style for the blog post container */
+.blog-post {
+  text-align: left;
+  margin: 20px auto;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  max-width: 600px;
+}
+
+.blog-post h3 {
+  margin: 0 0 10px 0; /* Add some space below the title */
+  font-size: 1.5em; /* Make the title larger */
+}
+
+.blog-post p {
+  margin: 0 0 10px 0; /* Add some space below the paragraph */
+}
+
+.blog-post a {
+  color: #007bff; /* Use a blue color for links */
+  text-decoration: none; /* No underline */
+}
+
+.blog-post a:hover {
+  text-decoration: underline; /* Underline on hover */
+}
+
+/* Style for the preceding comments container */
+.preceding-comments {
+  text-align: left;
+  margin: 20px auto;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  max-width: 600px;
+}
+
+.preceding-comment {
+  border-bottom: 1px solid #eee; /* Separate comments with a line */
+  padding-bottom: 10px; /* Space at the bottom of each comment */
+  margin-bottom: 10px; /* Space between comments */
+}
+
+.preceding-comment:last-child {
+  border-bottom: none; /* No border for the last comment */
+}
+
+/* Style for the current comment container */
+.current-comment {
+  text-align: left;
+  margin: 20px auto;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  max-width: 600px;
+}
+
+/* Shared style for all signatures */
+.comment-signature {
+  display: block; /* Ensure it's on its own line */
+  text-align: right;
+  margin-top: 10px;
+  font-size: 0.8em;
+  color: #666; /* Lighten the color for less emphasis */
+}
+
+.comment-container {
+  width: 100%; /* Adjust width as needed */
+  max-width: 600px; /* Adjust max-width to match the comment container width */
+  margin: 0 auto; /* Center the container */
+}
+
+.annotation-container {
+  display: flex;
+  align-items: flex-end; /* Keep items aligned at the bottom */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  gap: 10px; /* Space between task and label columns */
+}
+
+.comment {
+  text-align: left;
+  margin: 20px auto; /* Center the comment box */
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  max-width: 600px; /* Limit the width of comments for readability */
+}
+
+.comment-signature {
+  text-align: right; /* Right-align the signature */
+  margin-top: 10px; /* Add vertical space above the signature */
+  font-size: 0.8em; /* Make the signature font smaller */
+}
+
+.label-selection-container {
+  display: flex;
+  flex-direction: column; /* Stack label-selection containers vertically */
+  align-items: flex-start; /* Align to the start of the flex container */
+  gap: 10px; /* Adjust as needed for spacing */
+  margin-bottom: 20px; /* Space between label buttons and submit button */
+}
+
+.label-selection {
+  display: flex; /* Use flexbox for label buttons */
+  flex-wrap: wrap; /* Allow buttons to wrap to the next line */
+  gap: 10px; /* Space between buttons */
+  width: 100%; /* Full width for the label selection area */
+  margin-bottom: 10px; /* Space between each label-selection container */
+}
+
+.label-selection button {
+  flex: 1 1 auto; /* Allow buttons to grow and shrink */
+  min-width: 100px; /* Minimum width for buttons, adjust as needed */
+  max-width: calc(50% - 20px); /* Max width allows two buttons per row, adjust '20px' if gap changes */
+  box-sizing: border-box;
+  padding: 8px 16px;
+  margin: 2px;
+  border: none;
+  border-radius: 20px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.label-selection-container h2,
+.label-selection-container h3 {
+  text-align: left;
+  width: 100%;
+  margin-bottom: 10px;
+  margin-top: 3px;
+}
+
+.task-button {
+  padding: 8px 16px;
+  margin: 2px;
+  border: none;
+  border-radius: 20px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.task-button:hover, .label-selection button:hover, .task-button.selected, .label-selection button.selected {
+  background-color: #007bff;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.label-submit-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px; /* Adjust as needed for spacing */
+}
+
+.navigation-arrows {
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* Adjust as needed for spacing */
+}
+
+.submit-button {
+  width: 100%; /* Make submit button full width */
+  max-width: 600px; /* Match the max-width of the comment container */
+  margin-bottom: 50px;
+}
+
+.submit-button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.label-selection {
+  width: 100%; /* Label buttons take full width of their container */
+  align-self: stretch; /* Stretch to take the full width */
+}
+
+/* Style for the 'Submit Annotation' button */
+.submit-button {
+  width: 100%; /* Full width */
+  box-sizing: border-box;
+  padding: 12px 24px;
+  margin-top: auto;
+  border: none;
+  border-radius: 25px;
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: background-color 0.3s, box-shadow 0.3s;
+  align-self: flex-end; /* Align button to the right */
+}
+
+.submit-button:hover {
+  background-color: #218838;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.auth-top-bar {
+  width: 100%;
+  background-color: #e3f2fd; /* Mild blue color */
+  color: #333; /* Darker text for better readability */
+  padding: 10px 0; /* Padding on top and bottom */
+  display: flex;
+  justify-content: right; 
+  align-items: center;
+  position: fixed; /* Fixed at the top */
+  top: 0;
+  left: 0;
+  z-index: 1000; /* Ensure it's above other elements */
+}
+
+/* Push the rest of the content down to account for the fixed top bar */
+.App {
+  padding-top: 0px; /* Adjust this value based on the height of your auth-top-bar */
+}
+
+.auth-top-bar input {
+  margin-right: 10px; /* Space below each input */
+}
+
+.auth-top-bar button {
+  margin-right: 10px; /* Space below each button */
+}
+
+/* Style for logged in user section */
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between username and logout button */
+}
+
+.username {
+  font-weight: bold;
+}
+
+/* Style adjustments for buttons and inputs within the top bar */
+.auth-top-bar button, .auth-top-bar input {
+  border: 1px solid #bbb;
+  background-color: white;
+  color: #333;
+}
+
+.auth-top-bar button:hover {
+  background-color: #ddd;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
+.instructions-toggle-button {
+  /* Style your button as needed */
+  margin: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.instructions-container {
+  /* Style your container as needed */
+  margin: 10px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  text-align: left;
+}
+
+.instructions-container h2 {
+  margin-top: 0;
+}
+
+.hamburger {
+  /* Apply the same styles as your login/logout buttons */
+  cursor: pointer;
+  margin-right: 10px; /* Align with other buttons */
+  margin-left: 10px;
+}
+
+.auth-top-bar {
+  justify-content: space-between; 
+  transition: max-height 0.3s ease-in-out; /* Animate the expansion and collapse */
+  overflow: hidden; /* Hide the overflow when collapsed */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.auth-controls {
+  display: flex;
+  align-items: center;
+}
+
+.auth-top-bar.expanded {
+  max-height: 150px; /* Adjust this value based on the space needed for the task buttons */
+}
+
+.task-selection {
+  display: flex;
+  justify-content: center; /* Center task buttons */
+  padding: 10px 0; /* Add some padding */
+  box-shadow: none; /* Remove box shadow if not needed */
+  background-color: transparent; /* No background color */
+  gap: 10px;
+}
+
+.task-selection.show {
+  display: flex;
+  justify-content: center;
+}
+
+.toggle-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px 10px;
+  margin: 5px;
+  border: 1px solid #bbb;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+/* Adjust the blog-post and preceding-comments containers to position the toggle button */
+.blog-post, .preceding-comments {
+  position: relative;
+  padding-top: 25px; /* Add space for the toggle button */
+}
+
+.text-input-subtask {
+  width: 100%; /* Full width to match container */
+}
+
+/* Style for text input in deepSentiment task */
+.text-input-subtask input {
+  width: 100%; /* Full width to match container */
+  padding: 10px; /* Comfortable padding inside the textbox */
+  margin: 5px 0; /* Margin for spacing around the textbox */
+  border: 1px solid #ccc; /* Subtle border color */
+  border-radius: 4px; /* Slightly rounded corners */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Inner shadow for depth */
+  font-size: 1em; /* Adequate font size for readability */
+  line-height: 1; /* Line height for better readability */
+  color: #333; /* Darker text color for contrast */
+  background-color: #fff; /* White background */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  transition: border-color 0.3s ease-in-out; /* Smooth transition for interactions */
+}
+
+.text-input-subtask input:focus {
+  border-color: #007bff; /* Highlight color when the textbox is focused */
+  outline: none; /* Remove the default focus outline */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(0, 123, 255, 0.6); /* Add glow effect on focus */
+}
+
+@media (max-width: 1200px) {
+  .annotation-container {
+    flex-direction: column; /* Stack vertically on small screens */
+    align-items: stretch; /* Stretch children to fill the container width */
+  }
+
+  .task-selection {
+    order: 2; /* Ensure task selection comes after label selection */
+    width: 100%; /* Full width on smaller screens */
+    justify-content: flex-start; /* Align task buttons to the start on small screens */
+    flex-direction: row; /* Lay out task buttons in a row */
+    flex-wrap: wrap; /* Allow task buttons to wrap to next line */
+    gap: 10px;
+  }
+
+  .task-button {
+    /* Task buttons should be able to grow to fill the space, but not stretch to full width */
+    flex: 1 1 auto;
+    min-width: 100px; /* Minimum width for task buttons, adjust as needed */
+    max-width: calc(50% - 20px); /* Max width allows two buttons per row, adjust '20px' if gap changes */
+  }
+
+  .label-submit-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px; /* Adjust as needed for spacing */
+  }
+
+  .label-selection {
+    /* Label selection takes full width of its container */
+    width: 100%;
+    flex-grow: 1; /* Allow label buttons to take up available space */
+    flex-wrap: wrap; /* Allow label buttons to wrap if needed */
+    gap: 10px;
+    justify-content: flex-start; /* Align label buttons to the start on small screens */
+  }
+  
+
+  .label-selection button {
+    /* Label buttons should be able to grow but also wrap when there's no space */
+    flex: 1 1 auto;
+    min-width: 100px; /* Minimum width for label buttons, adjust as needed */
+    max-width: calc(50% - 20px); /* Max width allows two buttons per row, adjust '20px' if gap changes */
+  }
+
+  .submit-button {
+    /* Submit button should take the remaining space of the row */
+    flex: 1 1 100%;
+    max-width: 100%; /* Full width of the row */
+  }
+
+  .auth-top-bar.expanded {
+    max-height: 100%; /* Allow expanded bar to take full height on small screens */
+  }
+}
+
