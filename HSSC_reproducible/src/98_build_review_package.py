@@ -203,7 +203,10 @@ DATA_DICTIONARY = """# Data dictionary
 
 ## author_inferred_gender.csv
 
-`Author` (pseudonym), `Inferred Gender` (male, female, or empty for unknown).
+`Author` (pseudonym), `Inferred Gender` (male, female, or empty for unknown). 24,193 rows: 24,192 users
+(11,270 male, 5,484 female, 7,438 unknown) and the placeholder `user_00493`, under which the 1,080
+comments posted without a username are stored; it has no gender and is excluded from all user-level
+analyses.
 
 ## annotations_deidentified.csv
 
@@ -261,8 +264,14 @@ def build_and_run() -> None:
         shutil.rmtree(PKG)
     (PKG / "code" / "src" / "hssc").mkdir(parents=True)
     counts = build_db()
-    for f in ("author_inferred_gender.csv", "annotations_deidentified.csv"):
-        shutil.copy(C.INPUTS / f, PKG / "data" / f)
+    shutil.copy(C.INPUTS / "annotations_deidentified.csv", PKG / "data" / "annotations_deidentified.csv")
+    # The placeholder for comments posted without a username is not a person: give it no gender
+    # (the original file classed it female). The analyses exclude it from user-level results anyway.
+    g = pd.read_csv(C.INPUTS / "author_inferred_gender.csv", keep_default_na=False)
+    assert (g["Author"] == C.NAMELESS_AUTHOR).sum() == 1
+    g.loc[g["Author"] == C.NAMELESS_AUTHOR, "Inferred Gender"] = ""
+    assert g["Inferred Gender"].value_counts().to_dict() == {"male": 11_270, "": 7_439, "female": 5_484}
+    g.to_csv(PKG / "data" / "author_inferred_gender.csv", index=False)
     manifest = {"rows": counts, "sha256": {p.name: sha256(p) for p in sorted((PKG / "data").iterdir())}}
     (PKG / "data" / "MANIFEST.json").write_text(json.dumps(manifest, indent=2))
 

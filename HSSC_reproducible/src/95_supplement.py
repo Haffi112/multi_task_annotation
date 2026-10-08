@@ -29,20 +29,37 @@ REV = C.OUTPUTS / "revised"
 OUT = REV / "supplement"
 NO_EVENT = "No mapped event for this peak month"
 
-GENDER_MAPPING = [  # model prediction, first name, patronymic, final, count (Table S2)
-    ("female", "None", "None", "female", 535), ("female", "female", "None", "female", 1917),
-    ("female", "female", "female", "female", 2304), ("female", "None", "female", "female", 157),
-    ("female", "female", "male", "female", 12), ("female", "male", "female", "female", 17),
-    ("female", "None", "male", "female", 5), ("male", "male", "male", "male", 4650),
-    ("male", "male", "None", "male", 1657), ("male", "None", "male", "male", 302),
-    ("other", "male", "None", "male", 2017), ("other", "None", "male", "male", 471),
-    ("other", "male", "male", "male", 2138), ("non-binary", "male", "None", "male", 26),
-    ("non-binary", "male", "male", "male", 8), ("female", "male", "male", "male", 1),
-    ("other", "female", "None", "female", 462), ("other", "female", "female", "female", 51),
-    ("other", "female", "male", "female", 5), ("other", "None", "female", "female", 15),
-    ("male", "female", "None", "female", 1), ("non-binary", "female", "None", "female", 4),
-    ("other", "None", "None", "unknown", 6717), ("male", "None", "None", "unknown", 581),
-    ("non-binary", "None", "None", "unknown", 125), ("female", "male", "None", "unknown", 15),
+# Table S2, from cell 3 of [11b] thjodarspegill_define_genders.ipynb (26 combinations, 24,193 usernames).
+# Model prediction "None" = no prediction (the notebook labelled these "other"; they are exactly the
+# 11,876 usernames without a model prediction). The empty username (the 1,080 comments posted without a
+# username, classed female/None/None) is not a user and is removed: 535 -> 534. Total 24,192.
+GENDER_MAPPING = [  # model prediction, first name, patronymic, final, count
+    ('female', 'None', 'None', 'female', 534),
+    ('female', 'female', 'None', 'female', 1917),
+    ('female', 'female', 'female', 'female', 2304),
+    ('female', 'None', 'female', 'female', 157),
+    ('female', 'female', 'male', 'female', 12),
+    ('female', 'male', 'female', 'female', 17),
+    ('female', 'None', 'male', 'female', 5),
+    ('male', 'male', 'male', 'male', 4650),
+    ('male', 'male', 'None', 'male', 1657),
+    ('male', 'None', 'male', 'male', 302),
+    ('None', 'male', 'None', 'male', 2017),
+    ('None', 'None', 'male', 'male', 471),
+    ('None', 'male', 'male', 'male', 2138),
+    ('non-binary', 'male', 'None', 'male', 26),
+    ('non-binary', 'male', 'male', 'male', 8),
+    ('female', 'male', 'male', 'male', 1),
+    ('None', 'female', 'None', 'female', 462),
+    ('None', 'female', 'female', 'female', 51),
+    ('None', 'female', 'male', 'female', 5),
+    ('None', 'None', 'female', 'female', 15),
+    ('male', 'female', 'None', 'female', 1),
+    ('non-binary', 'female', 'None', 'female', 4),
+    ('None', 'None', 'None', 'unknown', 6717),
+    ('male', 'None', 'None', 'unknown', 581),
+    ('non-binary', 'None', 'None', 'unknown', 125),
+    ('female', 'male', 'None', 'unknown', 15),
 ]
 
 
@@ -90,9 +107,10 @@ def s1() -> str:
 def s2() -> str:
     rows = [f"{a} & {b} & {c} & {d} & {n:,}" for a, b, c, d, n in GENDER_MAPPING]
     return table("Gender inference mapping. Each row is a combination of the three signals and the resulting "
-                 "classification, with the number of usernames (24,193 including the empty username) matching it. "
-                 "``None'': no signal from that source; ``other'': the model predicted a category other than "
-                 "male or female.", "tab:S2", "llllr",
+                 "classification, with the number of users matching it (24,192 in total: 11,270 male, 5,484 "
+                 "female, 7,438 unknown). ``None'': no signal from that source (for the model, no prediction). "
+                 "The 1,080 comments posted without a username are not attributed to any user and are not "
+                 "counted.", "tab:S2", "llllr",
                  r"Model prediction & First name & Patronymic & Final gender & Count", rows)
 
 
@@ -145,70 +163,61 @@ def s18() -> str:
 
 
 def s19() -> str:
-    d = pd.read_csv(REV / "tables" / "tableS_feedback_kappa.csv")
-    pooled = d[d["task"] == "pooled_7_dimensions"].iloc[0]
-    d = d[d["task"] != "pooled_7_dimensions"]
-    rows = [f"{tex(r.label)} & {int(r.annotations):,} & {100 * r.share_feedback_on:.0f}\\% & {f(r.kappa_fig1_all)} & "
-            f"{f(r.kappa_fig1_on)} & {f(r.kappa_fig1_off)} & {f(r.diff_ann)} [{f(r.diff_ann_lo)}, {f(r.diff_ann_hi)}]"
-            for r in d.itertuples(index=False)]
-    note = ("$\\kappa$: Cohen's $\\kappa$ between the majority human label and the model's binarised score, as in "
-            "Figure 1, computed over all annotations and separately over annotations made with and without "
-            "feedback. Difference: annotation-level $\\kappa$ with feedback minus without, with a 95\\% percentile "
-            "interval from 2,000 bootstrap resamples of annotators (majority-vote $\\kappa$ cannot be bootstrapped "
-            "this way because resampling annotators breaks the ties that were excluded). Annotations made before "
-            "feedback logging began (22 August 2024) are counted under ``All'' only. Among the "
+    fb = pd.read_csv(REV / "tables" / "tableS_feedback_kappa.csv")
+    pooled = fb[fb["task"] == "pooled_7_dimensions"].iloc[0]
+    fb = fb[fb["task"] != "pooled_7_dimensions"].set_index("task")
+    sens = pd.read_csv(REV / "tables" / "validation_sensitivity.csv").set_index("task")
+    rows = []
+    for t in C.ANALYSED_TASKS:
+        r, v = fb.loc[t], sens.loc[t]
+        rows.append(f"{tex(r.label)} & {int(r.annotations):,} & {100 * r.share_feedback_on:.0f}\\% & "
+                    f"{f(r.kappa_fig1_all)} & {f(r.kappa_fig1_on)} & {f(r.kappa_fig1_off)} & "
+                    f"{f(r.diff_ann)} [{f(r.diff_ann_lo)}, {f(r.diff_ann_hi)}] & {f(v.kappa_gpt_0_4_only)} & "
+                    f"{f(v.alpha_inter_annotator)}")
+    note = ("$\\kappa$: Cohen's $\\kappa$ between the majority human label and the model's score binarised at "
+            "$\\geq$3 (Figure 1), over all annotations and separately over annotations made with and without the "
+            "optional feedback, which told annotators after each label whether it agreed with the model. "
+            "Difference: annotation-level $\\kappa$ with minus without feedback, with a 95\\% interval from 2,000 "
+            "bootstrap resamples of annotators. Among the "
             f"{int(pooled.annotators_both)} annotators who labelled the seven 0--4 dimensions both with and "
             f"without feedback, annotation-level $\\kappa$ was {f(pooled.kappa_ann_on_within)} with and "
-            f"{f(pooled.kappa_ann_off_within)} without feedback.")
-    return table("Human--model agreement for annotations made with and without the optional feedback, which told "
-                 "annotators after each submitted label whether it agreed with the model.", "tab:S19", "lrrrrrr",
-                 r"Dimension & Annotations & With feedback & $\kappa$ (all) & $\kappa$ (with) & $\kappa$ (without) & "
-                 r"Difference [95\% CI]", rows, note, size=r"\footnotesize")
+            f"{f(pooled.kappa_ann_off_within)} without. Model 0/4: $\\kappa$ restricted to comments the model "
+            "scored 0 or 4. $\\alpha$: Krippendorff's $\\alpha$ among annotators (ordinal for sentiment, nominal "
+            "otherwise) over comments with at least two annotators.")
+    return table("Human--model and inter-annotator agreement for the eight analysed dimensions.", "tab:S19",
+                 "lrrrrrrrr", r"Dimension & Labels & Feedback on & $\kappa$ & $\kappa$ with & $\kappa$ without & "
+                 r"Difference [95\% CI] & Model 0/4 & $\alpha$", rows, note, size=r"\footnotesize")
 
 
 def s20() -> str:
-    d = pd.read_csv(REV / "tables" / "validation_sensitivity.csv")
-    rows = [f"{tex(r.label)} & {f(r.kappa_fig1)} ({int(r.items_fig1)}) & {f(r.kappa_dedup)} & "
-            f"{f(r.kappa_gpt_0_4_only)} ({int(r.items_gpt_0_4_only)}) & {f(r.kappa_per_annotation)} & "
-            f"{f(r.alpha_inter_annotator)} ({int(r.items_multi_annotated)})" for r in d.itertuples(index=False)]
-    note = ("Figure 1: majority label vs model score binarised at $\\geq$3 (number of comments). Without duplicate "
-            "submissions: the 19,301 annotations reported in the text (28 repeated submissions removed). Model 0/4 "
-            "only: comments the model scored 0 or 4 (sentiment unchanged). Per annotation: each label against the "
-            "model score. Krippendorff's $\\alpha$ among annotators (ordinal for sentiment, nominal otherwise), "
-            "over comments with at least two annotators (number of comments).")
-    return table("Human--model and inter-annotator agreement under alternative choices.", "tab:S20", "lrrrrr",
-                 r"Dimension & $\kappa$ Figure 1 & No duplicates & Model 0/4 only & Per annotation & "
-                 r"Inter-annotator $\alpha$", rows, note, size=r"\footnotesize")
-
-
-def s21() -> str:
-    d = pd.read_csv(REV / "tables" / "fig10_contrasts_holm.csv")
+    con = pd.read_csv(REV / "tables" / "fig10_contrasts_holm.csv")
+    sens = pd.read_csv(REV / "tables" / "fig10_sensitivity.csv")
     n = pd.read_csv(REV / "tables" / "fig10_analytic_sample.csv").set_index("newgender")
-    rows = [f"{tex(r.label)} & {r.contrast} & {f(r.estimate, 3)} & [{f(r.ci_low, 3)}, {f(r.ci_high, 3)}] & "
-            f"{f(r.z, 1)} & {pval(r.p_holm)}" for r in d.itertuples(index=False)]
-    note = (f"Linear mixed models, one per outcome: score $\\sim$ inferred gender + blog-post topic indicators (nine "
-            f"most frequent LLM topics and ``Other'') + random intercept per commenter; REML, lme4 1.1-34, R 4.3.1. "
-            f"{n.loc['total', 'comments']:,} non-empty comments from {n.loc['total', 'users']:,} commenters "
+    diag = pd.read_csv(REV / "tables" / "fig10_model_diagnostics.csv")
+    sd = pd.read_csv(REV / "model_data" / "lmer_resid_sd_by_gender.csv")
+    by_gender = sd.pivot(index="outcome", columns="gender", values="resid_sd")
+    ratio = (by_gender.max(axis=1) / by_gender.min(axis=1)).max()
+    d = con[con["contrast"] != "unknown - female"].merge(sens, on=["outcome", "contrast"])
+    rows = [f"{tex(r.label)} & {r.contrast.replace(' - ', ' vs ')} & {f(r.estimate, 3)} [{f(r.ci_low, 3)}, "
+            f"{f(r.ci_high, 3)}] & {pval(r.p_holm)} & {f(r.ols_cluster_estimate, 3)} ({f(r.ols_cluster_se, 3)}) & "
+            f"{f(r.user_means_estimate, 3)} ({f(r.user_means_se, 3)})" for r in d.itertuples(index=False)]
+    uf = con[con["contrast"] == "unknown - female"]
+    note = (f"Mixed model: score $\\sim$ inferred gender + blog-post topic indicators (nine most frequent LLM topics "
+            f"and ``Other'') + random intercept per commenter; REML, lme4 1.1-34, R 4.3.1; "
+            f"{n.loc['total', 'comments']:,} non-empty comments from {n.loc['total', 'users']:,} users "
             f"({n.loc['male', 'users']:,} male, {n.loc['female', 'users']:,} female, {n.loc['unknown', 'users']:,} "
-            f"unknown). Estimates are differences in mean score on the 0--4 scale. Intervals are unadjusted 95\\% "
-            f"Wald intervals; $p$-values are two-sided Wald tests, Holm-adjusted over the 21 contrasts shown. "
-            f"All models converged without singular fits.")
-    return table("Gender contrasts behind Figure 10.", "tab:S21", "llrrrr",
-                 r"Outcome & Contrast & Estimate & 95\% CI & $z$ & $p$ (Holm)", rows, note, size=r"\footnotesize")
-
-
-def s22() -> str:
-    d = pd.read_csv(REV / "tables" / "fig10_sensitivity.csv")
-    rows = [f"{tex(C.LABELS[r.outcome])} & {r.contrast} & {f(r.lmm_estimate, 3)} ({f(r.lmm_se, 3)}) & "
-            f"{f(r.ols_cluster_estimate, 3)} ({f(r.ols_cluster_se, 3)}) & {f(r.user_means_estimate, 3)} "
-            f"({f(r.user_means_se, 3)})" for r in d.itertuples(index=False)]
-    note = ("Estimate (SE). Mixed model: as in Table S21. Comment-weighted: ordinary least squares on comments with "
-            "the same topic indicators and standard errors clustered by commenter, so prolific commenters weigh in "
-            "proportion to their comments. Commenter-weighted: least squares on each commenter's mean score "
-            "(each commenter counts once; HC3 standard errors; no topic adjustment).")
-    return table("Sensitivity of the gender contrasts to the weighting of commenters.", "tab:S22", "llrrr",
-                 r"Outcome & Contrast & Mixed model & Comment-weighted & Commenter-weighted", rows, note,
-                 size=r"\footnotesize")
+            f"unknown). Estimates are differences in mean score (0--4 scale) with unadjusted 95\\% Wald intervals; "
+            f"$p$-values are two-sided and Holm-adjusted over 21 contrasts, including unknown vs female, which "
+            f"ranges from {f(uf['estimate'].min(), 3)} to {f(uf['estimate'].max(), 3)} (all $p<0.001$). "
+            f"Comment-weighted: least squares on comments with the same topic indicators and commenter-clustered "
+            f"standard errors. Commenter-weighted: least squares on each commenter's mean score (HC3 standard "
+            f"errors, no topic adjustment). Estimate (SE). All {len(diag)} mixed models converged without singular "
+            f"fits. Residual spread increased with the fitted value, as expected for bounded scores that are "
+            f"mostly zero, and differed by at most a factor of {ratio:.1f} between gender groups; commenter "
+            f"intercepts were right-skewed for fear, group generalizations and hate speech.")
+    return table("Gender contrasts behind Figure 10 and their sensitivity to how commenters are weighted.",
+                 "tab:S20", "llrrrr", r"Outcome & Contrast & Mixed model [95\% CI] & $p$ (Holm) & "
+                 r"Comment-weighted & Commenter-weighted", rows, note, size=r"\footnotesize")
 
 
 def group_mapping() -> pd.DataFrame:
@@ -236,10 +245,6 @@ def main() -> None:
     gm[gm["named_groups"] != ""].to_csv(OUT / "group_mapping.csv", index=False)
     for name in ("figS1.png", "figS2.png"):
         shutil.copy(REV / "figures" / name, OUT / name)
-    shutil.copy(REV / "figures" / "figS_gender_model_diagnostics.png", OUT / "figS3.png")
-    sd = pd.read_csv(REV / "model_data" / "lmer_resid_sd_by_gender.csv")
-    ratio = sd.pivot(index="outcome", columns="gender", values="resid_sd")
-    ratio = (ratio.max(axis=1) / ratio.min(axis=1)).max()
 
     parts = [r"""\documentclass[11pt]{article}
 \usepackage[T1]{fontenc}
@@ -257,22 +262,21 @@ def main() -> None:
 \noindent All tables and figures except Tables S2 and S18 are generated by the replication package (\texttt{make all}); see its README for the script behind each item. This file is meant to be merged into the supplementary information. Still to be supplied by the authors: the crowdworker instructions (Icelandic and English), Table S18 (manual validation coding), and the event descriptions for the peaks marked in Tables S3--S16.
 
 \section*{Supplementary tables}
-""", s1(), s2(), *s3_s16(), s17(), s18(), s19(), s20(), s21(), s22(),
+""", s1(), s2(), *s3_s16(), s17(), s18(), s19(), s20(),
              r"""
 \section*{Supplementary figures}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figS1.png}
 \caption{Hate speech prevalence among comments generalizing about each named group (group-generalization score $\geq 3$). Groups with fewer than five such comments are not shown (Bisexuality, $n=2$; Intersex/Gender minorities, $n=1$). Error bars are 95\% Wilson intervals; they treat comments as independent and do not include classification error.}\label{fig:S1}\end{figure}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figS2.png}
 \caption{Toxicity prevalence among comments generalizing about each named group, as in Figure S1.}\label{fig:S2}\end{figure}
-\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figS3.png}
-\caption{Diagnostics for the mixed models behind Figure 10. Top: mean residual ($\pm$1 SD) within 40 bins of the fitted value. Bottom: standardised commenter random intercepts against normal quantiles. Residual spread grows with the fitted value, as expected for bounded scores that are mostly zero, and differs by at most a factor of """ + f"{ratio:.2f}" + r""" between gender groups within an outcome. The commenter intercepts for fear, group generalizations and hate speech are right-skewed: a minority of commenters have much higher scores than a normal distribution implies. The sensitivity analyses in Table S22 do not rely on these distributional assumptions.}\label{fig:S3}\end{figure}
+
 
 \section*{Supplementary note: group mapping}
 GPT-4o mini extracted 50,166 distinct free-text group labels. """ + f"{n_mapped:,}" + r""" of them were assigned by hand to one or more of 37 named groups, which were then combined into the six protected-trait categories of Article 233(a). The mapping of these labels to named groups and categories is provided as \texttt{group\_mapping.csv} in the replication package. In Figures 3--7, ``Nationalities (other)'' comprises the named groups for East Asia, South and Central Asia, North America, Oceania, South America, Southern Europe, Western Europe and the Nordic countries; references to African nationalities (53 comments) are included in the Nationality category of Figures 8 and 9 but not in this timeline. For combined timeline categories, the monthly value is the sum over the component named groups, so a comment that generalizes about two components is counted for each. Counting each comment once instead changes the monthly shares by at most 0.75 percentage points and changes four of the 133 numbered peaks (two for Ethnicities and one each for Nationalities (other) and Religion (other)).
 \end{document}
 """]
     (OUT / "supplement_generated.tex").write_text("\n".join(parts))
-    print(f"wrote {OUT / 'supplement_generated.tex'}; {n_mapped:,} of {len(gm):,} labels mapped; resid SD ratio {ratio:.2f}")
+    print(f"wrote {OUT / 'supplement_generated.tex'}; {n_mapped:,} of {len(gm):,} labels mapped")
 
 
 if __name__ == "__main__":
