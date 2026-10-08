@@ -65,7 +65,6 @@ Shared code lives in `src/hssc/`:
 ## Sensitivity runs
 
 - `outputs/sensitivity_distinct/`: Figures 3–7 with combined groups counted as distinct comments.
-- `outputs/sensitivity_africa/`: Figures 3–7 with Africa added to "Nationalities (other)".
 
 ## Known gaps
 

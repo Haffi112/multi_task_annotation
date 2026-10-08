@@ -26,20 +26,20 @@ Modes (``--mode``):
   Ethnicities, Nationalities (other), Religion (other)) are counted by adding the monthly
   counts of their component groups, so a comment mentioning two components counts twice.
   The two CSVs equal ``baseline/figure_data``.
-* ``revised``: the counting rule and composition of combined groups are kept (the published
-  peaks and their events depend on them, and the manuscript now states them), with one
-  correction: the hate-speech and toxicity lines of combined groups no longer drop to 0
-  every month (each month was held twice, once as 0), and the CSV has one row per month.
+* ``revised``: the counting rule for combined groups is kept (and stated in the manuscript),
+  with two corrections: Africa is part of "Nationalities (other)" (the misspelt label had left it
+  out; this moves peak 7 of that group from 2015-02 to 2015-07), and the hate-speech and toxicity
+  lines of combined groups no longer drop to 0 every month (each month was held twice, once as
+  0), so the CSV has one row per month.
 * ``sensitivity_distinct``: as revised, but combined groups count distinct comments per
   month in all three shares and in the +/-15-day window count (reported in the supplement).
-* ``--include-africa``: as the given mode, with Africa added to "Nationalities (other)".
+
 
 Run: ``uv run python src/15_group_timelines.py --mode reproduce|revised [--windows]``
 """
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import io
 import re
 import sys
@@ -123,11 +123,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--windows", action="store_true",
                     help="also export the comment text in each +/-15-day peak window")
-    ap.add_argument("--include-africa", action="store_true",
-                    help="sensitivity: add Africa to 'Nationalities (other)' (writes outputs/sensitivity_africa)")
     args, _ = ap.parse_known_args()
-    if args.include_africa:
-        mode = dataclasses.replace(mode, name="sensitivity_africa", fix_labels=True)
+    if mode.africa_in_other_nationalities:
+        assert mode.fix_labels, "the Africa label must be corrected for it to match"
         T.COMBINED_GROUPS["Nationalities (other)"].insert(0, "Africa (nationalities)")
     t0 = time.time()
 

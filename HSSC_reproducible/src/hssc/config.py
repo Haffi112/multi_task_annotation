@@ -91,9 +91,11 @@ class Mode:
     # Combined groups in Figs 3-7 (e.g. LGBTQIA+): sum component counts ("sum") or
     # count distinct comments ("distinct").
     combined_counts: str
-    # Correct the misspelt "Africa (nationalites)" label. In the notebook the misspelling
-    # also left Africa out of the combined "Nationalities (other)" group in Fig 3.
+    # Correct the misspelt "Africa (nationalites)" label (Figs S1-S2 bar label).
     fix_labels: bool
+    # Fig 3 "Nationalities (other)": include Africa. In the notebook the misspelt label meant
+    # that Africa silently dropped out of this combined group.
+    africa_in_other_nationalities: bool
     # Figs 3-7: the hate/toxicity series of combined groups held every month twice (0 and the
     # real value), so the dashed and dotted lines dropped to 0 every month.
     fix_overlay_duplicates: bool
@@ -116,6 +118,7 @@ MODES = {
         fig2_cov="nonrobust",
         combined_counts="sum",
         fix_labels=False,
+        africa_in_other_nationalities=False,
         fix_overlay_duplicates=False,
     ),
     "revised": Mode(
@@ -128,6 +131,7 @@ MODES = {
         fig2_cov="HAC",
         combined_counts="sum",
         fix_labels=True,
+        africa_in_other_nationalities=True,
         fix_overlay_duplicates=True,
     ),
 }

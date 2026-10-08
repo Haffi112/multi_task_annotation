@@ -115,7 +115,6 @@ revised:
 
 sensitivity:
 \t$(PY) src/15_group_timelines.py --mode sensitivity_distinct > logs/15_sensitivity_distinct.log 2>&1
-\t$(PY) src/15_group_timelines.py --mode revised --include-africa > logs/15_sensitivity_africa.log 2>&1
 
 numbers:
 \t$(PY) src/90_numbers_registry.py > logs/90_numbers.log 2>&1

@@ -16,7 +16,6 @@ reproduce revised:
 
 sensitivity:
 	$(PY) src/15_group_timelines.py --mode sensitivity_distinct > logs/15_sensitivity_distinct.log 2>&1
-	$(PY) src/15_group_timelines.py --mode revised --include-africa > logs/15_sensitivity_africa.log 2>&1
 
 registry:
 	$(PY) src/91_check_reproduction.py > logs/91_check_reproduction.log 2>&1
@@ -29,4 +28,4 @@ osf:
 	$(PY) src/99_export_osf.py
 
 clean:
-	rm -rf outputs/reproduce outputs/revised outputs/sensitivity_distinct outputs/sensitivity_africa
+	rm -rf outputs/reproduce outputs/revised outputs/sensitivity_distinct

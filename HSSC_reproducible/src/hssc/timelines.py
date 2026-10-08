@@ -18,8 +18,8 @@ Quirks of the notebook (kept in reproduce mode; the first is corrected in revise
   with share 0 (from the dense grid) and once with the combined value, so those lines zigzag
   to 0 in the figures and ``fig3-7_monthly_group_shares.csv`` has duplicate month rows.
 * "Africa (nationalities)" in the notebook's ``COMBINED_GROUPS`` did not match the bucket label
-  "Africa (nationalites)", so Africa is not part of "Nationalities (other)". The entry is
-  omitted here to make that explicit (no effect on any output).
+  "Africa (nationalites)", so Africa was not part of "Nationalities (other)". Revised mode adds it
+  (``Mode.africa_in_other_nationalities``).
 * For a combined group the peak day is the day on which one of its components had the
   highest share of that day's comments, not the day with the highest combined share.
 """
@@ -50,10 +50,9 @@ COMBINED_GROUPS = {
         "Indigenous peoples (ethnicities)", "Latino/Latin Americans (ethnicities)",
         "Middle Eastern/Arab (ethnicities)", "White/European (ethnicities)",
         "Multiethnic/General (ethnicities)"],
-    # Africa is not part of this group in the published analysis: the notebook listed it as
-    # "Africa (nationalities)", which never matched the bucket label "Africa (nationalites)".
-    # Adding it (15_group_timelines.py --include-africa) replaces one of the ten numbered peaks
-    # (2015-02, Copenhagen attacks) with 2015-07; see reports/02_changes.md.
+    # Africa is added in revised mode (Mode.africa_in_other_nationalities). The notebook listed it
+    # as "Africa (nationalities)", which never matched the bucket label "Africa (nationalites)", so
+    # it was left out; including it replaces peak 7 (2015-02-15) with 2015-07-13.
     "Nationalities (other)": [
         "East Asia (nationalities)",
         "South and Central Asia (nationalities)", "North America (nationalities)",

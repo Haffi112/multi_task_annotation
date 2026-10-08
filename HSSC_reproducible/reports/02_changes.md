@@ -16,7 +16,7 @@ conclusion changed.**
 | 4 | Sample rule | Corpus counts use all 804,437 comments. All analyses exclude the 6,097 empty comments. User-level analyses also exclude the 1,080 comments without a username (D3). | Users 24,193 → 24,192; unknown users 7,439 → 7,438; comments per unknown user 11.8 → 11.6. |
 | 5 | Figures S1/S2 | The stated n < 5 rule is now applied, and the intervals are Wilson intervals instead of Wald. | Bisexuality (n = 2) and Intersex/Gender minorities (n = 1) are no longer drawn. Category intervals move by ≤ 0.006. |
 | 6 | Figure 2 bands | Newey–West (HAC) standard errors on the same fit; labelled pointwise. The comments without a username are dropped from the centring. | Curves unchanged. Bands are 0.91–1.60× as wide. The narrative is unaffected. |
-| 7 | Figures 3–7 | Drawing bug fixed: the hate and toxicity lines of combined groups dropped to 0 every month. The counting rule and the composition of combined groups are now stated in the text. | All 133 numbered peaks are unchanged. |
+| 7 | Figures 3–7 | Drawing bug fixed: the hate and toxicity lines of combined groups dropped to 0 every month. Africa added to "Nationalities (other)" (a label typo had left it out). The counting rule is now stated in the text. | 132 of 133 numbered peaks unchanged; peak 7 of "Nationalities (other)" moves to 2015-07. |
 | 8 | Smaller text fixes | Prevalence notation; peak rule ("at least as large"); the 700-comment rule; Figure 1 caption 0.81 → 0.80; days active 666 → 667 (rounding); the 43% figure described as an equal-weight average; "no evidence of a difference" instead of "no significant difference". | None. |
 
 ## 1. Feedback during human annotation (Human Validation, Dimension Selection, Limitations; Table S19)
@@ -134,9 +134,7 @@ treated it as "unknown". In the revision it is not attributed to any user.
   (`outputs/sensitivity_distinct`) changes the monthly shares by at most 0.75 percentage points. It
   also changes 4 of the 133 numbered peaks, in Ethnicities (2), Nationalities (other) and Religion
   (other). This is reported in the supplementary note.
-- **Africa.** It was never part of "Nationalities (other)", because of a label misspelling. Adding it
-  (`--include-africa`) would replace one peak (2015-02, the Copenhagen attacks) with 2015-07. The
-  text now lists the groups the timeline actually contains.
+- **Africa.** It was never part of "Nationalities (other)", because of a label misspelling ("Africa (nationalites)"). The revised version includes it (53 comments). Only that panel of Figure 3 changes (monthly shares by at most 0.19 percentage points), and only one of its ten numbered peaks: peak 7 moves from 2015-02-15 (Copenhagen attacks) to 2015-07-13 (Greek bailout referendum and eurozone agreement). Row 7 of Table S7 is updated accordingly.
 
 ## Not done or still open
 
