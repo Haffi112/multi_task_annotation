@@ -275,6 +275,8 @@ def main() -> None:
     sens.to_csv(mode.out / "tables" / "validation_sensitivity.csv", index=False)
 
     eight = paper[paper["task"].isin(C.ANALYSED_TASKS)]
+    # Same basis as Table S19: labels of the eight dimensions in the Figure 1 data, "skip" excluded
+    eight_labels = d[d["task"].isin(C.ANALYSED_TASKS)]
     counts = {
         "annotations": len(paper),
         "annotators": int(paper["annotator_id"].nunique()),
@@ -283,12 +285,13 @@ def main() -> None:
         "skips": int((paper["value"] == "skip").sum()),
         "share_feedback_on_all": float((paper["feedback_active"] == 1).mean()),
         "share_feedback_off_all": float((paper["feedback_active"] == 0).mean()),
-        "share_feedback_on_eight": float((eight["feedback_active"] == 1).mean()),
-        "share_feedback_off_eight": float((eight["feedback_active"] == 0).mean()),
+        "share_feedback_on_eight": float((eight_labels["feedback_active"] == 1).mean()),
+        "share_feedback_off_eight": float((eight_labels["feedback_active"] == 0).mean()),
         "annotations_eight": len(eight),
-        "annotators_eight": int(eight["annotator_id"].nunique()),
+        "labels_eight": len(eight_labels),
+        "annotators_eight": int(eight_labels["annotator_id"].nunique()),
         "annotators_ever_on_all": int(paper.loc[paper["feedback_active"] == 1, "annotator_id"].nunique()),
-        "annotators_ever_on_eight": int(eight.loc[eight["feedback_active"] == 1, "annotator_id"].nunique()),
+        "annotators_ever_on_eight": int(eight_labels.loc[eight_labels["feedback_active"] == 1, "annotator_id"].nunique()),
         "top_annotator_share": float(paper["annotator_id"].value_counts(normalize=True).iloc[0]),
         "non_sentiment_gpt_not_0_or_4": float(
             1 - d.loc[d["task"] != "sentiment", "gpt_score"].isin([0, 4]).mean()),
