@@ -150,12 +150,12 @@ produced this way.
 
 | Manuscript item | Script |
 |---|---|
-| Figure 1, human-validation numbers, Tables S19-S20 | `src/10_human_validation.py` |
+| Figure 1, human-validation numbers, Table S19 | `src/10_human_validation.py` |
 | Corpus and user numbers, Tables S1 and S17 | `src/11_descriptives.py` |
 | Figure 2 | `src/12_temporal_trends.py` |
 | Figures 8, 9, S1, S2 | `src/14_prevalence.py` |
 | Figures 3-7, Tables S3-S16 | `src/15_group_timelines.py` |
-| Figure 10, Tables S21-S22, Figure S3 | `src/16_gender_models.py` (calls `16_gender_models.R`) |
+| Figure 10, Table S20 | `src/16_gender_models.py` (calls `16_gender_models.R`) |
 | Supplementary tables (LaTeX) | `src/95_supplement.py` |
 
 The scripts also contain a `reproduce` mode that regenerates an earlier analysis version; the

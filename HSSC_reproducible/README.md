@@ -43,12 +43,12 @@ password hashes.
 
 | Manuscript item | Script | Output (`outputs/<mode>/`) |
 |---|---|---|
-| Figure 1; Human Validation numbers; Tables S19–S20 | `src/10_human_validation.py` | `figures/fig1.png`, `figure_data/fig1_*.csv`, `tables/tableS_feedback_kappa.csv`, `tables/validation_*.{csv,json}` |
+| Figure 1; Human Validation numbers; Table S19 | `src/10_human_validation.py` | `figures/fig1.png`, `figure_data/fig1_*.csv`, `tables/tableS_feedback_kappa.csv`, `tables/validation_*.{csv,json}` |
 | Dataset Construction numbers; Tables S1, S17 | `src/11_descriptives.py` | `tables/descriptives.json`, `tables/tableS1_*.csv`, `tables/tableS17_*.csv` |
 | Figure 2 | `src/12_temporal_trends.py` | `figures/fig2.png`, `figure_data/fig2_*.csv`, `tables/fig2_band_widths.csv` |
 | Figures 8, 9, S1, S2 | `src/14_prevalence.py` | `figures/fig8.png` … `figS2.png`, `figure_data/fig8-9_*.csv`, `figure_data/figS1-S2_*.csv` |
 | Figures 3–7; Tables S3–S16 | `src/15_group_timelines.py` | `figures/fig3.png` … `fig7.png`, `figure_data/fig3-7_*.csv`, `figure_data/tableS3-S16_peak_events.csv` |
-| Figure 10; Tables S21–S22; Figure S3 | `src/16_gender_models.py` (calls `16_gender_models.R`) | `figures/fig10.png`, `figure_data/fig10_*.csv`, `tables/fig10_*.csv`, `figures/figS_gender_model_diagnostics.png` |
+| Figure 10; Table S20 (diagnostics figure kept as a check, not in the SI) | `src/16_gender_models.py` (calls `16_gender_models.R`) | `figures/fig10.png`, `figure_data/fig10_*.csv`, `tables/fig10_*.csv`, `figures/figS_gender_model_diagnostics.png` |
 | Numbers registry | `src/90_numbers_registry.py` | `reports/numbers.csv` |
 | Check against baseline | `src/91_check_reproduction.py` | `reports/reproduction_check.csv` |
 | Generated supplement | `src/95_supplement.py` | `outputs/revised/supplement/` |
