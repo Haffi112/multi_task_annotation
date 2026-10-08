@@ -5,7 +5,7 @@ group_mapping.csv (the supplementary note's label -> named group -> category map
 
 Tables S1, S3-S16, S17, S19-S22 and Figures S1-S3 are generated from the pipeline. Table S2
 (gender-inference mapping) is the output of [11b] thjodarspegill_define_genders.ipynb, copied
-from the appendix of the earlier version (697b554ff9ec687619137be5/main.tex). Table S18 needs
+from the appendix of an earlier version of the manuscript. Table S18 needs
 the first author's coding sheet and is left as a marked placeholder. In Tables S3-S16, peaks
 without an event in the code's event list (hssc/timelines_events.py) are marked for the
 authors; no event label is invented.

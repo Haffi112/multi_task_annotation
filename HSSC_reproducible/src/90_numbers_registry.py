@@ -139,6 +139,14 @@ ROUNDING = {"days_active": "manuscript truncated 666.6 to 666", "kappa_politenes
 
 
 def main() -> None:
+    if not (C.OUTPUTS / "reproduce" / "tables" / "descriptives.json").exists():
+        e_rev = entries(load("revised"), "revised")
+        rows = [{"id": k, "where": where, "value": e_rev.get(k, "")} for k, where, _ in MANUSCRIPT
+                if k != "s18_precision"]
+        C.REPORTS.mkdir(exist_ok=True)
+        pd.DataFrame(rows).to_csv(C.REPORTS / "numbers.csv", index=False)
+        print(pd.DataFrame(rows).to_string(index=False))
+        return
     rep, rev = load("reproduce"), load("revised")
     e_rep, e_rev = entries(rep, "reproduce"), entries(rev, "revised")
     rows = []

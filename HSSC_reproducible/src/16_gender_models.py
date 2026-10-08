@@ -215,15 +215,19 @@ def main() -> None:
         columns={"estimate": "lmm_estimate", "se": "lmm_se"}), on=["outcome", "contrast"])
     sens.to_csv(mode.out / "tables" / "fig10_sensitivity.csv", index=False)
 
-    base = pd.read_csv(C.BASELINE / "figure_data" / "fig10_gender_model_estimates.csv")
-    base = base[base["gender"].isin(["female", "unknown"]) & base["outcome"].isin(OUTCOMES)]
-    base["contrast"] = base["gender"] + " - male"
-    cmp_ = base[["outcome", "contrast", "Estimate", "Std. Error", "lower", "upper"]].rename(columns={
-        "Estimate": "old_estimate", "Std. Error": "old_se", "lower": "old_ci_low", "upper": "old_ci_high"}).merge(
-        con, on=["outcome", "contrast"])
-    cmp_["same_direction"] = np.sign(cmp_["old_estimate"]) == np.sign(cmp_["estimate"])
-    cmp_["ratio_new_old"] = cmp_["estimate"] / cmp_["old_estimate"]
-    cmp_.to_csv(mode.out / "tables" / "fig10_old_vs_new.csv", index=False)
+    # Old-vs-new comparison (needs baseline/, which the review package does not ship)
+    base_csv = C.BASELINE / "figure_data" / "fig10_gender_model_estimates.csv"
+    cmp_ = None
+    if base_csv.exists():
+        base = pd.read_csv(base_csv)
+        base = base[base["gender"].isin(["female", "unknown"]) & base["outcome"].isin(OUTCOMES)]
+        base["contrast"] = base["gender"] + " - male"
+        cmp_ = base[["outcome", "contrast", "Estimate", "Std. Error", "lower", "upper"]].rename(columns={
+            "Estimate": "old_estimate", "Std. Error": "old_se", "lower": "old_ci_low", "upper": "old_ci_high"}).merge(
+            con, on=["outcome", "contrast"])
+        cmp_["same_direction"] = np.sign(cmp_["old_estimate"]) == np.sign(cmp_["estimate"])
+        cmp_["ratio_new_old"] = cmp_["estimate"] / cmp_["old_estimate"]
+        cmp_.to_csv(mode.out / "tables" / "fig10_old_vs_new.csv", index=False)
 
     counts = frame.groupby("newgender").agg(comments=("comment_id", "size"), users=("author", "nunique"))
     counts.loc["total"] = counts.sum()
@@ -232,8 +236,9 @@ def main() -> None:
     pd.set_option("display.width", 220)
     print(counts.to_string())
     print(diag.to_string(index=False))
-    print(cmp_[["label", "contrast", "old_estimate", "estimate", "ratio_new_old", "se", "ci_low", "ci_high",
-                "p_holm", "same_direction"]].round(4).to_string(index=False))
+    if cmp_ is not None:
+        print(cmp_[["label", "contrast", "old_estimate", "estimate", "ratio_new_old", "se", "ci_low", "ci_high",
+                    "p_holm", "same_direction"]].round(4).to_string(index=False))
     print(con[con["contrast"] == "unknown - female"][["label", "estimate", "se", "p_holm"]].round(4).to_string(index=False))
     print(sens.round(4).to_string(index=False))
 

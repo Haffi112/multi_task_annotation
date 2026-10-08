@@ -1,12 +1,12 @@
 """Figure 1 and the human-validation numbers (model-human agreement, feedback, annotator counts).
 
-Method of Figure 1 (ARCHIVE/hotter_and_colder/01_preprocessing.ipynb, 02_ai_agreement.ipynb):
+Method of Figure 1 (the analysis notebooks of the companion validation study):
 annotations made before 24 Oct 2024, "skip" labels and the trolling_anonymity task removed;
 the GPT-4o mini score is binarised (score >= 3 -> 1) except for sentiment (3 classes); the
 human label for a comment is the majority label among its annotators (ties dropped); Cohen's
 kappa is computed per task between the majority label and the binarised model score.
 
-Sampling design (annotation_interface_v2/app/[3] populate_annotation_db.py): for each binary
+Sampling design (the annotation app's population script): for each binary
 task, the 600 comments with the highest and the 500 with the lowest model score (at most one
 per blog post), plus 100 random comments shared by all tasks; for sentiment, 1,100 comments
 balanced over the three model classes plus the same 100 random comments.
@@ -185,7 +185,7 @@ def sensitivity_table(snap: pd.DataFrame, paper: pd.DataFrame) -> pd.DataFrame:
         r["kappa_gpt_0_4_only"], r["items_gpt_0_4_only"] = kappa_majority(ext[ext["task"] == task])
         td = base[base["task"] == task]
         r["kappa_per_annotation"] = cohen_kappa_score(td["h"], td["g"])
-        # Inter-annotator agreement (03_human_agreement.ipynb): Krippendorff's alpha over
+        # Inter-annotator agreement (as in the companion study): Krippendorff's alpha over
         # comments with at least two annotators; ordinal for sentiment, nominal otherwise.
         multi = td.groupby("comment_uuid").filter(lambda x: len(x) >= 2)
         mat = multi.pivot_table(index="comment_uuid", columns="annotator_id", values="h", aggfunc="first")
@@ -223,7 +223,7 @@ def band(k: float) -> str:
 
 
 def plot_fig1(fig1: pd.DataFrame, outfile: Path) -> None:
-    """Port of ARCHIVE/hotter_and_colder/plot_agreement_comparison_ai.py (PNG instead of EPS)."""
+    """Port of the companion validation study's plotting script (PNG instead of EPS)."""
     df = fig1.sort_values("Cohen's Kappa").reset_index(drop=True)
     fig, ax = plt.subplots(figsize=(16, 9))
     for key, (lo, hi) in [("almost_perfect", (0.8, 1.0)), ("substantial", (0.6, 0.8)),

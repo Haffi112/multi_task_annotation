@@ -2,11 +2,10 @@
 
 Two modes are supported by every script:
 
-* ``reproduce`` regenerates the numbers behind the 7 October 2026 manuscript
-  (Overleaf commit 026e798) and the OSF package of the same date. It exists so that
+* ``reproduce`` regenerates the numbers of the earlier analysis version (7 October 2026). It exists so that
   every change made in the revision can be shown against an exact baseline.
-* ``revised`` applies the corrections agreed in October 2026
-  (see ``2026_10_08_reproducibility_plan.md`` and ``reports/02_changes.md``).
+* ``revised`` applies the corrections made in October 2026; this is the version reported in
+  the manuscript.
 """
 from __future__ import annotations
 
@@ -24,7 +23,9 @@ BASELINE = ROOT / "baseline"
 REPORTS = ROOT / "reports"
 
 # Shareable inputs (also shipped in the OSF package)
-DB_PATH = INPUTS / "blog_comments_deidentified.db"
+# analysis_data.db: the review package's database (no texts); otherwise the full de-identified one
+DB_PATH = (INPUTS / "analysis_data.db" if (INPUTS / "analysis_data.db").exists()
+           else INPUTS / "blog_comments_deidentified.db")
 GENDER_CSV = INPUTS / "author_inferred_gender.csv"
 ANNOTATIONS_CSV = INPUTS / "annotations_deidentified.csv"
 

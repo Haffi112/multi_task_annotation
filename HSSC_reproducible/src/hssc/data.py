@@ -23,20 +23,32 @@ def connect(path=C.DB_PATH) -> sqlite3.Connection:
 
 
 def load_comments(mode: C.Mode, keep_text: bool = False) -> pd.DataFrame:
-    """One row per comment, keyed by ``comment_id``."""
-    cols = ["id", "uuid", "blog_id", "author_name", "comment_datetime", "comment_text"] + SCORE_COLS
+    """One row per comment, keyed by ``comment_id``.
+
+    Works with the full de-identified database (comment texts included) and with the review
+    package's database, which has no texts but an ``is_empty`` flag computed the same way.
+    """
     with connect() as conn:
+        available = {r[1] for r in conn.execute("PRAGMA table_info(comments)")}
+        has_text = "comment_text" in available
+        if keep_text and not has_text:
+            raise ValueError("this database has no comment texts (they are not shared, to protect commenters)")
+        text_col = ["comment_text"] if has_text else ["is_empty"]
+        cols = ["id", "uuid", "blog_id", "author_name", "comment_datetime"] + text_col + SCORE_COLS
         df = pd.read_sql(f"SELECT {', '.join(cols)} FROM comments", conn)
     assert len(df) == C.N_COMMENTS and df["id"].is_unique
 
-    empty = df["comment_text"].fillna("").str.strip().eq("")
+    if has_text:
+        empty = df["comment_text"].fillna("").str.strip().eq("")
+    else:
+        empty = df.pop("is_empty").astype(bool)
     assert int(empty.sum()) == C.N_EMPTY_COMMENTS
     df["is_empty"] = empty
     df["is_nameless"] = df["author_name"].eq(C.NAMELESS_AUTHOR)
     assert int(df["is_nameless"].sum()) == C.N_NAMELESS_COMMENTS
     if mode.drop_empty_comments:
         df = df.loc[~empty].copy()
-    if not keep_text:
+    if has_text and not keep_text:
         df = df.drop(columns="comment_text")
 
     df = df.rename(columns={"id": "comment_id"})
