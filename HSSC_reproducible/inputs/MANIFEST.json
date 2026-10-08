@@ -1,0 +1,20 @@
+{
+  "corpus": {
+    "comments": 804437,
+    "authors_incl_nameless": 24193,
+    "nameless_comments": 1080,
+    "nameless_gender_in_csv": "female"
+  },
+  "annotations": {
+    "annotations_backup": 19858,
+    "annotations_paper": 19301,
+    "annotators_paper": 170,
+    "distinct_texts_paper": 12232,
+    "distinct_comment_ids_paper": 12381
+  },
+  "sha256": {
+    "blog_comments_deidentified.db": "9208464b8fcfec66976db1a642fad6959211df1a0868066afa1d50d23ed47190",
+    "author_inferred_gender.csv": "15f7ef31728dca42fd4edb5f50aa2d58c902d95dfec857dcece52f8985f98227",
+    "annotations_deidentified.csv": "9d173822760dd87dcbd6b854ca0462c0e19ee4543a44c1d6f59f5cc0f9b5ebe1"
+  }
+}

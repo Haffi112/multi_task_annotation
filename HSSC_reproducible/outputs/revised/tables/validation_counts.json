@@ -1,0 +1,17 @@
+{
+  "annotations": 19301,
+  "annotators": 170,
+  "distinct_comment_texts": 12232,
+  "distinct_comment_ids": 12381,
+  "skips": 794,
+  "share_feedback_on_all": 0.6308999533702917,
+  "share_feedback_off_all": 0.3587378892285374,
+  "share_feedback_on_eight": 0.49263657957244655,
+  "share_feedback_off_eight": 0.48921615201900237,
+  "annotations_eight": 10525,
+  "annotators_eight": 165,
+  "annotators_ever_on_all": 70,
+  "annotators_ever_on_eight": 65,
+  "top_annotator_share": 0.3312781721154344,
+  "non_sentiment_gpt_not_0_or_4": 0.062271999999999994
+}

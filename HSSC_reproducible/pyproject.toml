@@ -1,0 +1,21 @@
+[project]
+name = "hssc-reproducible"
+version = "1.0.0"
+description = "Reproducible analyses for the HSSC manuscript on Icelandic blog-comment discourse"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy",
+    "pandas==2.3.3",
+    "scipy",
+    "statsmodels",
+    "patsy",
+    "matplotlib==3.8.4",
+    "seaborn",
+    "scikit-learn",
+    "krippendorff",
+    "pyarrow",
+    "openpyxl",
+]
+
+[tool.uv]
+package = false

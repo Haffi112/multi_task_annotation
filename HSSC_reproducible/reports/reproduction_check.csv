@@ -1,0 +1,20 @@
+output,result,detail
+fig1_model_human_agreement.csv,equal,
+fig2_weekly_centred_means.csv,equal,
+fig3-7_monthly_group_shares.csv,equal,
+fig3-7_peak_catalog.csv,equal,
+fig8-9_prevalence_protected_traits.csv,equal,
+figS1-S2_prevalence_named_groups.csv,equal,
+fig10_gender_model_estimates.csv,equal (1e-6),"14 shown gender terms: max |d est| 6.3e-08, max |d SE| 6.2e-08"
+fig3.png,pixel-identical,"(4344, 7234, 3) vs (4344, 7234, 3)"
+fig4.png,pixel-identical,"(4344, 7234, 3) vs (4344, 7234, 3)"
+fig5.png,pixel-identical,"(2181, 7234, 3) vs (2181, 7234, 3)"
+fig6.png,pixel-identical,"(1888, 3525, 3) vs (1888, 3525, 3)"
+fig7.png,pixel-identical,"(1888, 3525, 3) vs (1888, 3525, 3)"
+fig8.png,pixel-identical,"(2096, 4170, 3) vs (2096, 4170, 3)"
+fig9.png,pixel-identical,"(2096, 4170, 3) vs (2096, 4170, 3)"
+figS1.png,pixel-identical,"(4256, 5225, 3) vs (4256, 5225, 3)"
+figS2.png,pixel-identical,"(4256, 5225, 3) vs (4256, 5225, 3)"
+fig1.png,redrawn,no plotting code was shipped for the baseline image
+fig2.png,redrawn,weekly data identical; 5% of pixels differ in rendering (checked by eye)
+fig10.png,redrawn,no plotting code was shipped for the baseline image

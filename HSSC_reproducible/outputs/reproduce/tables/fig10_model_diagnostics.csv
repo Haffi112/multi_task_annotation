@@ -1,0 +1,8 @@
+outcome,formula,n_obs,n_authors,singular,converged,messages,sd_author,sd_residual,rank_deficient_dropped,minutes
+politeness,politeness ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.78866181114222,0.988950626886098,0,0.28
+emotion_joy,emotion_joy ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.931889865591384,1.14565029862046,0,0.26
+emotion_fear,emotion_fear ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,False,"Model failed to converge with max|grad| = 0.00314547 (tol = 0.002, component 1)",0.351948853651821,0.558042935405031,0,0.27
+emotion_anger,emotion_anger ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.934698686115308,1.211767804531,0,0.26
+group_generalization_presence,group_generalization_presence ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.519804171089559,0.758652091401862,0,0.29
+toxicity,toxicity ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.847907934865434,1.07874925403034,0,0.26
+hate_speech_presence,hate_speech_presence ~ newgender + (1 | topic) + (1 | author),2355526,24193,False,True,,0.337777978037662,0.455144286391456,0,0.25

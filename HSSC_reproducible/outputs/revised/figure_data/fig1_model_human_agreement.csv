@@ -1,0 +1,26 @@
+Task,Cohen's Kappa
+Mansplaining,0.21164619842693522
+Sympathy,0.24868340058819505
+Sarcasm,0.2620765602143291
+Emotion surprise,0.3475211170204008
+Social acceptability close friend,0.36060660947456813
+Trolling behavior,0.47445123681291757
+Emotion sadness,0.5048622366288492
+Social acceptability parliament,0.5102720412492951
+Emotion disgust,0.526739162818412
+Constructiveness,0.5313478533157052
+Emotion indignation,0.5574271570484068
+Emotion fear,0.6004390458071125
+Hate speech presence,0.6025346401805496
+Sentiment,0.6051348392874913
+Group generalization presence,0.6160507488805393
+Emotion contempt,0.6324669402644778
+Toxicity,0.6519246519246519
+Encouragement presence,0.6570100951950162
+Emotion joy,0.6854897884309649
+Social acceptability acquaintances,0.7132963988919667
+Emotion anger,0.7240938645395947
+Social acceptability educational young,0.7277028525563172
+Social acceptability educational older,0.7476743545989981
+Social acceptability strangers,0.7563137621480491
+Politeness,0.8024372816767228

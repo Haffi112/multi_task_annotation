@@ -1,0 +1,42 @@
+{
+  "comments": 804437,
+  "first_comment": "2005-01-29 00:01:00",
+  "last_comment": "2024-06-08 02:39:00",
+  "author_strings_incl_nameless": 24193,
+  "nameless_comments": 1080,
+  "empty_comments": 6097,
+  "analysed_comments": 798340,
+  "comments_from_2008": 719093,
+  "users": 24193,
+  "median_comments_per_user": 1.0,
+  "by_gender": [
+    {
+      "newgender": "female",
+      "users": 5484,
+      "comments": 201409,
+      "mean_comments": 36.7267,
+      "median_comments": 1.0,
+      "mean_days": 415.8435,
+      "pct_users": 22.6677
+    },
+    {
+      "newgender": "male",
+      "users": 11270,
+      "comments": 515505,
+      "mean_comments": 45.7413,
+      "median_comments": 2.0,
+      "mean_days": 666.6015,
+      "pct_users": 46.5837
+    },
+    {
+      "newgender": "unknown",
+      "users": 7439,
+      "comments": 87523,
+      "mean_comments": 11.7654,
+      "median_comments": 1.0,
+      "mean_days": 276.4167,
+      "pct_users": 30.7486
+    }
+  ],
+  "male_share_of_comments": 0.6408270629023777
+}

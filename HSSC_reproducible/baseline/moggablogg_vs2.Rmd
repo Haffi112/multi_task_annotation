@@ -1,0 +1,1792 @@
+---
+title: "Toxísk komment"
+author: "Sigrún Helga Lund"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::readthedown:
+   code_folding: hide
+---
+
+```{r, echo=F}
+  knitr::opts_chunk$set(warning=F, message=F, echo=T)
+```
+
+
+```{r}
+# library(tidyverse)
+# library(readxl)
+# library(knitr)
+# library(lme4)
+#library(RSQLite)
+#library(showtext)
+# library(broom.mixed)
+
+# bætt við SRF
+
+# Avoid ragg on Linux; use Cairo for PNGs
+options(bitmapType = "cairo")
+
+# Core data + plotting (no tidyverse meta-package)
+library(dplyr)       # mutate, select, filter, group_by, summarize, arrange, left_join
+library(ggplot2)     # ggplot, geoms, scales, themes
+library(forcats)     # fct_reorder
+library(scales)      # percent_format
+library(viridis)     # scale_fill_viridis_d
+
+# I/O + dates + strings
+library(readr)       # read_csv
+library(lubridate)   # as_datetime
+library(stringr)     # str_detect, etc.
+
+# Database (modern DBI interface)
+library(DBI)         # dbConnect, dbGetQuery, etc.
+library(RSQLite)     # SQLite() driver
+
+# Already in your file (keep if you use them)
+library(knitr)
+library(lme4)        # lmer
+library(broom.mixed) # tidy/glance for mixed models
+
+# Optional: comment out if you don't need custom fonts
+library(showtext); showtext_auto()
+
+# Optional: only if you actually call readxl::read_excel()
+library(readxl)
+library(tidyr)
+library(purrr)   
+```
+```{r}
+showtext_auto()
+showtext_opts(dpi = 300)
+```
+
+
+```{r}
+
+filename <- "blog_comments.db"
+sqlite.driver <- dbDriver("SQLite")
+db <- dbConnect(sqlite.driver, dbname = filename)
+                
+## Some operations
+dbListTables(db)
+comments <- dbReadTable(db, "comments") %>% select(id, blog_id, author_name:aggregate_gender) 
+comments$dt <- as_datetime(comments$comment_datetime, format='%Y-%m-%dT%H:%M:%S')
+comments$dt_num <- as.numeric(comments$dt)
+comments$dt_num <- (comments$dt_num - min(comments$dt_num))/(max(comments$dt_num) - min(comments$dt_num))
+comments <- comments %>% group_by(author_name) %>%
+  mutate(comment_rank = rank(dt_num),
+         n.comment = n()) %>%
+  ungroup()
+comments$month <- months(comments$dt)
+comments$weekday <- weekdays(comments$dt)
+first <- filter(comments, n.comment==1) %>%
+   rename(firsttox = toxicity) %>% select(author_name, firsttox) %>%
+  distinct()
+
+gender <- read_csv('author_inferred_gender.csv')
+names(gender) <- c('author_name','newgender')
+
+comments <- comments %>% left_join(gender)
+comments$newgender[is.na(comments$newgender)] <- 'unknown'
+comments$newgender <- fct_relevel(comments$newgender, 'male')
+
+blog_topics <- dbReadTable(db, "blog_topics")
+blog_topics$id <- fct_lump_n(factor(blog_topics$topic_id), 9)
+
+topics <- dbReadTable(db, "topics")
+topics$id <- factor(topics$id)
+blog_topics <- left_join(blog_topics, topics)
+blog_topics$name[is.na(blog_topics$name)] <- 'Other'
+blog_topics <- blog_topics %>% select(blog_id, name) %>% distinct()
+
+comments <- left_join(comments, blog_topics)
+
+```
+
+# Figure 2 - gender difference in emotions
+
+```{r, eval=FALSE}
+df <- NULL
+
+mod1 <- lmer(toxicity ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'toxicity'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(politeness ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'politeness'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(hate_speech_presence ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'hate_speech_presence'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_anger ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_anger'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_joy ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_joy'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_sadness ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_sadness'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_fear ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_fear'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_disgust ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_disgust'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_contempt ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_contempt'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_indignation ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_indignation'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(emotion_neutral ~ newgender+ (1|name) + (1|blog_id) , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_neutral'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(sarcasm ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'sarcasm'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(sympathy ~ newgender+ (1|name) + (1|blog_id) , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'sympathy'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(group_generalization_presence ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'group_generalization_presence'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_strangers ~ newgender+ (1|name) + (1|blog_id) , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_strangers'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_acquaintances ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_acquaintances'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_parliament ~ newgender+ (1|name) + (1|blog_id) , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_parliament'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_educational_young ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_educational_young'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_close_friend ~ newgender + (1|name) + (1|blog_id), data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_close_friend'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lmer(social_acceptability_educational_older ~ newgender+ (1|name) + (1|blog_id) , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_educational_older'
+df <- df %>% bind_rows(dtmp)
+
+
+# taka saman í töflu
+
+rownames(df) <- 1:nrow(df)
+df$upper <- df$Estimate + 2*df$`Std. Error`
+df$lower <- df$Estimate - 2*df$`Std. Error`
+df$gender <- str_replace(df$group, 'newgender', '')
+df$outcome <- factor(df$outcome)
+df$outcome <- fct_reorder2(df$outcome, df$group, df$Estimate)
+
+write_csv(df, 'emotions_by_gender_model_estimates.csv')
+```
+
+```{r, eval=FALSE}
+df <- NULL
+
+mod1 <- lm(toxicity ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'toxicity'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(politeness ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'politeness'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(hate_speech_presence ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'hate_speech_presence'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_anger ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_anger'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_joy ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_joy'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_sadness ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_sadness'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_fear ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_fear'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_disgust ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_disgust'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_contempt ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_contempt'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_indignation ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_indignation'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(emotion_neutral ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'emotion_neutral'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(sarcasm ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'sarcasm'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(sympathy ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'sympathy'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(group_generalization_presence ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'group_generalization_presence'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_strangers ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_strangers'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_acquaintances ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_acquaintances'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_parliament ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_parliament'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_educational_young ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_educational_young'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_close_friend ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_close_friend'
+df <- df %>% bind_rows(dtmp)
+
+mod1 <- lm(social_acceptability_educational_older ~ newgender , data=comments)
+dtmp <- summary(mod1)$coefficients %>% as.data.frame
+dtmp$group <- rownames(dtmp)
+dtmp$outcome <- 'social_acceptability_educational_older'
+df <- df %>% bind_rows(dtmp)
+
+
+# taka saman í töflu
+
+rownames(df) <- 1:nrow(df)
+df$upper <- df$Estimate + 2*df$`Std. Error`
+df$lower <- df$Estimate - 2*df$`Std. Error`
+df$gender <- str_replace(df$group, 'newgender', '')
+df$outcome <- factor(df$outcome)
+df$outcome <- fct_reorder2(df$outcome, df$group, df$Estimate)
+
+write_csv(df, 'emotions_by_gender_model_estimates_unadjusted.csv')
+```
+
+```{r, eval=FALSE}
+df <- read_csv('emotions_by_gender_model_estimates.csv')
+df %>% 
+  filter(!str_detect(outcome, 'social_acceptability')) %>%
+  filter(!outcome %in% c('emotion_neutral','sarcasm','sympathy')) %>%
+  filter(group!='(Intercept)') %>%
+  mutate(group = fct_relevel(outcome, 'newgenderunknown')) %>%
+  mutate(outcome = str_replace(outcome,'emotion_','')) %>%
+  mutate(outcome = str_replace(outcome,'_presence','')) %>%
+  mutate(outcome = str_replace(outcome,'_',' ')) %>%
+  mutate(gender = str_to_sentence(gender)) %>%
+  mutate(outcome = str_to_sentence(outcome)) %>%
+  mutate(outcome = fct_reorder2(outcome, group, Estimate)) %>%
+  ggplot(aes(x=outcome, y=Estimate, ymax=upper, ymin=lower, color=gender)) +
+  geom_pointrange(fatten=2) +
+  geom_hline(yintercept=0, lty=2) +
+  coord_flip() +
+  scale_color_viridis_d(name='Gender: ') +
+  theme_minimal() + 
+  xlab('') +
+  ylab('Effect estimate') +
+  theme(legend.position = 'top') -> p1
+
+ggsave('fig2.png', p1, bg='white', width = 1400, height = 1200, units = "px", scale=0.9)
+```
+
+```{r, eval=FALSE}
+df <- read_csv('emotions_by_gender_model_estimates_unadjusted.csv')
+df %>% 
+  filter(!str_detect(outcome, 'social_acceptability')) %>%
+  filter(!outcome %in% c('emotion_neutral','sarcasm','sympathy')) %>%
+  filter(group!='(Intercept)') %>%
+  mutate(group = fct_relevel(group, 'newgenderunknown')) %>%
+  mutate(outcome = str_replace(outcome,'emotion_','')) %>%
+  mutate(outcome = str_replace(outcome,'_presence','')) %>%
+  mutate(outcome = str_replace(outcome,'_',' ')) %>%
+  mutate(gender = str_to_sentence(gender)) %>%
+  mutate(outcome = str_to_sentence(outcome)) %>%
+  mutate(outcome = fct_reorder2(outcome, group, Estimate)) %>%
+  ggplot(aes(x=outcome, y=Estimate, ymax=upper, ymin=lower, color=gender)) +
+  geom_pointrange(fatten=2) +
+  geom_hline(yintercept=0, lty=2) +
+  coord_flip() +
+  scale_color_viridis_d(name='Gender: ') +
+  theme_minimal() + 
+  xlab('') +
+  ylab('Effect estimate') +
+  theme(legend.position = 'top') -> p1
+
+ggsave('fig2_unadj.png', p1, bg='white', width = 1400, height = 1200, units = "px", scale=0.9)
+```
+
+# Figure 2b number of comments by topic - gamalt
+
+```{r, eval=FALSE}
+comments %>% 
+  filter(!is.na(name)) %>% 
+  group_by(newgender) %>%
+  mutate(tot=n()) %>%
+  group_by(newgender, name, tot) %>%
+  summarize(n=n()) %>% 
+  ungroup() %>%
+  mutate(k = n/tot) %>%
+  mutate(name = fct_reorder(name, k)) %>%
+  ggplot(aes(x=name, y=k, fill=newgender)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  coord_flip() +
+  scale_fill_viridis_d(name='gender:') +
+  theme_minimal() + 
+  ylab('Proportion of comments') +
+  xlab('Topic') +
+  theme(legend.position = 'top') -> p2
+
+ggsave('no_comments_by_topic.png', p2, bg='white', width = 1800, height = 1500, units = "px")
+```
+
+```{r, eval=FALSE}
+comments %>% 
+  filter(!is.na(name)) %>% 
+  select(blog_id, name) %>%
+  distinct() %>%
+  group_by(name) %>%
+  summarize(n=n()) %>% 
+  mutate(name = fct_reorder(name, n)) %>%
+  ggplot(aes(x=name, y=n)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  coord_flip() +
+  theme_minimal() + 
+  ylab('Number of blogs') +
+  xlab('Topic') +
+  theme(legend.position = 'top') -> p3
+
+ggsave('number_of_blogs_by_topic.png', p3, bg='white', width = 1800, height = 1500, units = "px")
+```
+
+# Figure 2c gender effect stratified - gamalt
+
+```{r, eval=F}
+df <- read_csv('emotions_by_gender_model_estimates.csv')
+
+
+ldat <- comments %>%
+  select(unique(as.character(df$outcome)),newgender, name, author_name) %>%
+  na.omit() %>%
+  distinct() %>%
+  pivot_longer(cols=unique(as.character(df$outcome)),
+               names_to='measure',
+               values_to='outcome')
+
+nested_data <- ldat %>%
+  group_by(name, measure) %>%
+  nest()
+
+nested_models <- nested_data %>%
+  mutate(
+    full_model = map(data, ~ lmer(outcome ~ newgender + (1|author_name), data = .x, REML = FALSE)),
+    reduced_model = map(data, ~ lmer(outcome ~ 1 + (1|author_name), data = .x, REML = FALSE))
+  )
+
+result <- nested_models %>%
+  mutate(
+    b_coefs = map(full_model, ~ broom.mixed::tidy(.x) %>%
+                    filter(str_starts(term, "newgender")) %>%
+                    select(term, estimate, std.error)),
+    lrt_p = map2_dbl(reduced_model, full_model, ~ anova(.x, .y)[["Pr(>Chisq)"]][2])
+  )
+
+rmat <- result %>%
+  select(name, measure, b_coefs,  lrt_p) %>%
+  unnest(b_coefs)
+
+write_csv(rmat, 'stratified_models_coefficients.csv')
+```
+
+```{r, eval=F}
+rmat <- read_csv('stratified_models_coefficients.csv')
+
+r2 <- rmat %>% filter(term=='newgenderfemale') %>%
+  as.data.frame() %>%
+  filter(!str_detect(measure, 'social_acceptability')) %>%
+  filter(!measure %in% c('emotion_neutral','sarcasm','sympathy')) %>%
+  mutate(measure = str_replace(measure,'emotion_','')) %>%
+  mutate(measure = str_replace(measure,'_presence','')) %>%
+  mutate(measure = str_replace(measure,'_',' ')) %>%
+  mutate(measure = str_to_sentence(measure)) %>%
+  mutate(name = str_to_sentence(name)) %>%
+  mutate(measure = fct_reorder(measure, estimate)) %>%
+  mutate(name = fct_reorder(name, estimate)) %>%
+  #filter(lrt_p < 0.05/nrow(r2)) %>%
+  mutate(measure=factor(measure))
+r2 %>%
+  ggplot(aes(x=name, y=measure, fill=estimate)) +
+  scale_fill_gradient2(
+  low = "darkblue",
+  mid = "white",
+  high = "darkred",
+  midpoint = 0,
+  name='Effect:'
+) +
+  theme_minimal() +
+  xlab('Blog topic') +
+  ylab('Emotion') +
+  theme(legend.position = 'top') +
+  xlab('') + 
+  ylab('') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> p1
+
+ggsave('stratified_gender_effect.png', p1, bg='white', width = 2000, height = 1500, units = "px")
+  
+```
+
+
+# Figure 3 - Time trend in emotions - uppfæra þegar ég fæ frá Steinunni
+
+```{r}
+timetrend <- comments %>% 
+  select(dt, toxicity, politeness, hate_speech_presence, group_generalization_presence, author_name) %>%
+  gather('emotion','outcome', -c(dt, author_name)) %>%
+  group_by(author_name, emotion) %>%
+  mutate(av = mean(outcome)) %>%
+  mutate(outcome_std = outcome - mean(outcome)) %>%
+  ungroup() %>%
+  mutate(date = as.Date(dt)) %>%
+  mutate(vika = floor_date(date, "weeks")) 
+
+
+tt <- timetrend %>%
+  mutate(date = as.Date(dt)) %>%
+  mutate(vika = floor_date(date, "weeks")) %>%
+  group_by(vika, emotion) %>%
+  summarize(
+    n.comments = n(),
+    av = mean(outcome_std)) %>%
+  ungroup()
+```
+```{r}
+tt %>%
+  filter(emotion=='politeness') %>%
+  ggplot(aes(x=vika, y=n.comments)) +
+  geom_smooth(span=0.1, n=30) +
+  theme_minimal() +
+  geom_point() +
+  #scale_color_viridis_d() +
+  #scale_fill_viridis_d() +
+  xlab('Time of the comment') +
+  ylab('Number of comments') -> p2b
+
+ggsave('number_of_comments.png', p2b, bg='white', width = 3000, height = 1500, units = "px")
+```
+
+```{r}
+timetrend %>%
+  #filter(date > as.Date(c('2006-01-01'))) %>%
+  ggplot(aes(x=vika, y=outcome_std, color=emotion, fill=emotion)) +
+  geom_smooth(span=0.1, n=30) +
+  #geom_line() +
+  theme_minimal() +
+  scale_color_viridis_d() +
+  scale_fill_viridis_d() +
+  xlab('Time of the comment') +
+  #scale_x_date(limits = as.Date(c('2006-06-01','2024-01-01'))) +
+  ylab('Individually standarized outcome')  -> p3
+
+ggsave('fig3d.png', p3, bg='white', width = 3000, height = 1500, units = "px")
+```
+
+# Figure 4 - Hate speech
+
+```{r}
+agtagg <- dbReadTable(db, 'comment_aggression_targets')
+nofn <- dbReadTable(db, 'aggression_targets')
+names(nofn)[1] <- 'target_id'
+names(nofn)[2] <- 'targeted_group'
+names(comments)[1] <- 'comment_id'
+
+agtag <- comments %>% left_join(agtagg) %>% left_join(nofn)
+
+agtag <- agtag %>% filter(!is.na(aggression_level)) %>%
+  mutate(targeted_group = str_to_sentence(targeted_group)) %>%
+  mutate(targeted_group = factor(targeted_group)) %>%
+  mutate(targeted_group = fct_reorder(targeted_group, hate_speech_presence))
+
+agtag$targeted_group <- as.character(agtag$targeted_group)
+agtag$targeted_group[agtag$targeted_group=='Sexual orientation'] <- 'LGBTQIA+'
+
+agtag %>% 
+  filter(targeted_group!='Other') %>%
+  ggplot(aes(x=targeted_group, fill=factor(hate_speech_presence))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Hate speech:') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+chisq.test(table(agtag$hate_speech_presence, agtag$name))
+
+ggsave('hate_speech_presence_by_target.png', p1, bg='white', width = 1600, height = 1200, units = "px", scale=0.9)
+
+agtag %>% group_by(targeted_group) %>%
+  summarize(mean = mean(hate_speech_presence) %>% round(2),
+            sd = sd(hate_speech_presence) %>% round(2)) %>%
+  arrange(mean) %>%
+  write_csv('mean_hate_speech_presence_by_target.csv')
+
+```
+
+
+
+# Figure 5 - Group generalization
+```{r}
+groups <- dbReadTable(db, "comment_group_generalizations") 
+groupn <- dbReadTable(db, "generalized_groups") 
+
+```
+
+```{r}
+dat <- comments %>% select(-name) %>% distinct()
+```
+
+```{r}
+lgbtqiap = c('homosexuals', 'LGBTQ community', 'LGBT community', 'samkynhneigðir',
+             'lesbians', 'members of the LGBTQ+ community', 'same-sex attracted individuals', 'LGBTQ+ community', 'LGBTIQ+', 'people who identify as LGBTQ+', 'LGBTQ+', 'the LGBTQ+ community', 'LGBTQ+ individuals', 'LGBT individuals', 'those who identify as LGBTQ+', 'LGBT people', 'individuals supporting LGBTQ+ rights', 'LGBTQ', 'LGBT', 'LGBTQ individuals', 'LGBTQ+ people', 'LGBT rights advocates', 'LGBTIQ', 'lgbtq community', 'members of LGBTQ+ community', 'lgbt community', 'LGBT+ individuals', 'LGBTq community', 'lgbt individuals', 'individuals identifying as LGBTQ+', 'LGBTQ youth', 'LGBTQ+ Community', 'religious individuals opposed to LGBTQ+ rights', 'LGBTQ+ communities', 'LGBTIQ community', 'LGBTQ+ asylum seekers', 'LGBT+ community', 'the LGBT community', 'people who are LGBTQ+', 'people who support LGBTQIA rights', 'people opposing LGBTQ education', 'LGBTQIA+',
+             'LGBTQIA+ community', 'LGBTQ advocates', 'people against LGBTQ+ rights', 'samkynhneigðir (LGBT)', 'LGBTQ+ groups', 'LGBTQ+ activists', 'people supporting LGBTQ+ rights', 'LGBTQ+ organizations', 'hinsegin fólk', 'hinseginfólk', 'hinsegin drengir', 'hinsegin', 'HINSEGIN samfélagi', 'hinsegin fólki', 'hinsegin samfélagið', 'samkynhneigð', 'Samkynhneigðir', 'samkynhneigt fólk', 'samkynhneigir', 'samkynhneigðir menn', 'samkynhneigðra', 'samkynhneigðir karlmenn', 'samkynhneigðum', 'Samkynhneigt fólk', 'samkynhneigðir (gay people)', 'samkynhneigðir karlar', 'samkynhneigð börn', 'ogift samkynhneigð pör', 'samkynheigð', 'samkynhneigða', 'samkynhneigð fólk', 'samkynja pör', 'samkynheigðir', 'samkynhneigdir', 'samkynhneygð', 'samkynhneigðar konur', 'samkynhneigin fólk', 'samkynhneigður', 'samkynja fólk', 'samkynhneigðu fólki', 'samkynhneigðu', 'samkynhneigð pör', 'karlkyns samkynhneigðir', 'samkynhneygðir', 'einkynhneigðir', 'tvíkynhneigðir sjallar', 'people with different sexual orientations', 'bisexuals', 'sexual orientation', 'people of different sexual orientations', 'individuals with differing sexual orientations', 'Homosexuals', 'sexual minorities', 'homosexual individuals', 'people with differing sexual orientations', 'individuals with different sexual orientations', 'homosexual community', 'individuals with certain sexual orientations', 'people with certain sexual orientations', 'individuals with a different sexual orientation', 'marginalized sexual orientation', 'individuals with differing sexual orientation', 'marginalized sexual orientations', 'Gender and sexual minorities', 'people of sexual minorities', 'non-heterosexual individuals', 'asexual people', 'people with asexuality', 'asexual individuals', 'Homosexuallar', 'homosexual men', 'people who are sexual minorities', 'individuals with unknown gender', 'bisexual people', 'individuals with diverse sexual orientations', 'homosexual couples', 'individuals with non-heteronormative sexual orientation', 'those with differing sexual orientations', 'homosexuals and lesbians', 'homosexuals and fishermen', 'people with non-heteronormative sexual orientations', 'people with diverse sexual orientations', 'people with dangerous sexual orientations', 'men with unsafe sexual orientation', 'athletes with differences of sexual development', 'people of various sexual orientations', 'different sexual orientations', 'homosexual people', 'debates on sexual orientation', 'bisexual individuals', 'People with different sexual orientations', 'marginalized sexual minorities', 'kynvillingar', 'kynvitund', 'hommar', 'hommum', 'múslimska homma', 'hommar og lesbíur', 'homma', 'Epalhommar', 'lesbías og hommar', 'lesbian women', 'lesbians and gays', 'lesbian people', 'gays and lesbians', 'lesbians and gay men', 'lesbíur', 'lesbía', 'individuals with unknown gender/sexual orientation', 'people with mixed gender characteristics', 'same-sex couples', 'people in same-sex relationships', 'same-sex relationships', 'same-sex individuals', 'individuals from same-sex households', 'same-sex families', 'same-sex marriages', 'same-sex marriage supporters', 'same-sex orientation', 'same-sex marriage advocates', 'same-sex attracted people', 'same-sex oriented individuals', 'same-sex oriented people', 'supporters of same-sex marriage', 'same-sex attracted', 'gay men', 'gay individuals', 'gays', 'supporters of gay pride', 'gay people', 'gay pride individuals', 'gaypride participants', 'gay community', 'Gays', 'gay pride supporters', 'gay pride community', 'gay pride leaders', 'gay-pride supporters', 'gaypride-fólks', 'gay pride', 'Gay people', 'gay pride advocates', 'gaypride-fólk', 'Gay community', 'gaypride-göng-fólk', 'gaypride supporters', 'lesbian', 'bisexual', 'LGTBQ+ community', 'Samkynhneigðir', 'individuals with intersex conditions' )
+```
+
+```{r}
+trans <- c('transgender', 'trans individuals', 'transgender people', 'transgender individuals',
+'transgender community', 'trans activists', 'trans community', 'trans women', 'Trans people', 'trans people',
+'homo/trans fólk', 'transfólk', 'Trans individuals', 'people undergoing gender transition', 'Trans community',
+'parents of transgender children', 'individuals supporting transgender rights', 'Transgender individuals',
+'people who are transgender or non-binary', 'people who want to change gender', 'gender identity',
+'people with gender dysphoria', 'individuals seeking gender reassignment', 'gender fluid individuals',
+'individuals with unclear gender identity', 'gender non-conforming individuals',
+'people with non-binary or gender-fluid identities', 'individuals without gender conformity', 'gender identities',
+'people with diverse gender identities', 'advocates for gender identity legislation',
+'people challenging traditional definitions of gender', 'individuals seeking non-gendered names',
+'individuals with gender dysphoria', 'individuals with diverse gender identities', 'gender non-conformists',
+ 'gender non-conformers', 'individuals with non-conforming gender identities',
+'people uncomfortable with their gender identity', 'individuals with gender identities outside the binary',
+'people with differing gender identities', 'gender diverse individuals', 'gender minorities',
+'individuals identifying outside traditional gender norms', 'supporters of gender diversity',
+'gender nonconforming individuals', 'individuals identifying with non-binary or gender non-conforming identities',
+'gender-diverse individuals', 'people identifying as a different gender',
+'people identifying with different gender identities', 'gender non-conformity',
+'individuals questioning gender identity', 'people with non-binary identities')
+
+```
+
+```{r}
+disability <- c('addicts', 'people with tuberculosis', 'people with body image issues',
+'drug users', 'people with disabilities', 'people who drink excessively',
+'people with cancer', 'people with alcoholism', 'alcoholics', 'patients',
+'people with addiction issues', 'disabled', 'people with mental health issues',
+'parents of sick children', 'people with mental illness', 'people who struggle with mental illness',
+'people with mental illnesses', 'young people with ADHD', 'young disabled individuals',
+'young disabled people', 'young disability beneficiaries', 'women with Down syndrome',
+'depressed women', 'disabled women', 'those receiving pensions or disability benefits',
+'disability', 'people on disability benefits', 'people on disability',
+'those receiving financial support due to disability', 'disability beneficiaries',
+'people receiving disability benefits', 'adults on disability benefits',
+'disability benefit recipients', 'individuals on disability', 'Disability community',
+'disability recipients', 'disabled individuals', 'disabled persons', 'disabled people',
+'intellectually disabled', 'the disabled', 'mentally disabled', 'disabled community',
+'blind and disabled people', 'Disabled people', 'disabled children', 'Disabled',
+'disabled Icelanders', 'parents of disabled children', 'parents of children with disabilities',
+'children with disabilities', 'individuals with disabilities', 'people with mental disabilities',
+'people with physical or mental disabilities', 'people with mental or physical disabilities',
+'people with temporary disabilities', 'those with disabilities', 'disabilities',
+'people with reading disabilities', 'individuals with mental disabilities',
+'persons with disabilities', 'people with intellectual disabilities',
+'students with learning disabilities', 'people with different mental states or disabilities',
+'athletes with disabilities', 'readers with learning disabilities',
+'individuals with disabilities or the elderly', 'people with speech disabilities',
+'people with disabilities or psychiatric disorders', 'fatlaðir', 'fatlaða', 'fatlað fólk',
+'fatlaða individuals', 'fatlaður', 'fatlaða einstaklinga', 'geðfatlaðir', 'fötluðum',
+'fólk með fötlun', 'fötlunar', 'hreyfihömlunar', 'people using wheelchairs',
+'people in wheelchairs', 'leshamlaða eða þroskahamlaða', 'vangefnir', 'vangefnum',
+'blind individuals', 'the blind', 'blind people', 'the blind (figurative)',
+'people with color blindness', 'litblinda (color blind)', 'lesblindir', 'heyrnarskertur',
+'heyrnarlausir', 'heyrnarlausra hælisleitenda', 'deaf individuals', 'deaf asylum seekers',
+'greindarskertra', 'greindarskert fólk', 'mentally ill individuals', 'mentally ill',
+'Mentally ill', 'the mentally ill', 'mentally ill people', 'parents of mentally ill children',
+'the mentally challenged', 'intellectually challenged', 'intellectually challenged individuals',
+'people perceived as intellectually deficient', 'intellectually disadvantaged',
+'people with ADHD', 'individuals with ADHD and related disorders',
+'individuals diagnosed with ADHD', 'those with ADHD', 'children with ADHD',
+'ADHD individuals', 'adults with ADHD', 'individuals with ADHD',
+'people with ADHD or hyperactivity', 'children with ADHD or hyperactivity',
+'people experiencing depression', 'people with depression', 'people suffering from depression',
+'depressed individuals', 'people who attempt suicide or struggle with mental health',
+'people considering suicide', 'people with suicidal tendencies',
+'individuals who committed suicide', 'youth/suicidal individuals', 'suicide victims',
+'suicidal individuals', 'people with suicidal thoughts', 'people who have died by suicide',
+'people suffering from self-harm or suicide', 'geðveikir', 'geðveikt fólk',
+'long-term ill children', 'people with autism', 'individuals with autism',
+'autistic individuals', 'parents of children with autism', 'patients with eating disorders',
+'people with eating disorders', 'people with unhealthy eating habits',
+'those with eating disorders', 'individuals with eating disorders',
+'people with social anxiety', 'people with anxiety disorders', 'people with anxiety', 'mental health patients', 'mental illness', 'people suffering from mental health issues', 'people with dementia')
+
+```
+
+```{r}
+women <- c('úlpukonur', 'older women', 'women over 40', 'women', 'feminists', 'stay-at-home mothers',
+'single mothers', 'kellingar (women)', 'hairy women', 'Western women', 'young women in leadership',
+'young women', 'overweight women', 'women in conservative societies', 'Women', 'German women',
+'red-haired women', 'Celtic women', 'foreign women', 'women in politics', 'French women',
+'pregnant women', 'women in political leadership positions', 'wealthy women', 'Lithuanian women',
+'Czech women dancing in Iceland', 'women involved in sex work', 'women in prostitution',
+'women in sex work', 'Chinese women', 'brjóstapúðakonur (breast implant women)', 'married women',
+'poor women', 'single women', 'Icelandic women', 'snobbish women', 'strong women',
+'women in punk group', 'women in power', 'women in sports', 'American women',
+'women in waste management', 'women and children in developing countries', 'plus-size women',
+'women from the Balkans', 'women in leadership', 'women dealing with financial issues',
+'women in Bangladesh', 'Brazilian women', 'women married to doctors', 'women in authority',
+'elderly women', 'young girls and women', 'women in leadership roles',
+'elderly women supporting whaling', 'women experiencing miscarriages', 'divorced women',
+'women in professional roles', 'Womens rights advocates', 'women teachers', 'Conservative women',
+'fisherwomen', 'women politicians', 'Irish women', 'breast augmentation and reduction women',
+'cleaning women', 'Norwegian women', 'self-governing women', 'Afghan women', 'skinny women',
+'Norse women', 'women in finance', 'Guatemalan women', 'Palestinian women', 'ordinary women',
+'modern women', 'northern women', 'women in parliament', 'women with breast surgery',
+'womens roles in politics', 'Iranian women', 'western women', 'women in policing',
+'women in leftist parties', 'light-haired women', 'upper-class women',
+'young women from Russia', 'pregnant women and children', 'fat women', 'elder women',
+'white women', 'women seeking abortions', 'women advocating for womens rights',
+'young women in England', 'women drivers', 'leftist women', 'independent women',
+'women doing sit-ups', 'single mothers or women in cohabitation', 'light women',
+'women and children', 'young women in Iceland', 'Russian women', 'women in conservative cultures',
+'right-wing women', 'sportswomen', 'migrant women', 'womens rights activists',
+'women from Thailand', 'Nigerian women', 'women in medicine', 'Eastern European women',
+'Virgo women', 'Athletic women', 'women from the Philippines', 'women in government',
+'women in tourism', 'professional women', 'Finnish women', 'Filipino women', 'Japanese women',
+'Thai women', 'younger women in politics', 'famous women', 'thin women', 'women in banking',
+'feminists or women activists', 'women in the sex trade', 'Icelandic women and children',
+'women from abroad', 'Icelandic businesswomen', 'Danish women', 'African women',
+'unmarried young women', 'uneducated women', 'young men and women', 'certain women',
+'ljóska (blonde) women', 'women in high positions', 'women in the airline industry',
+'young adult women', 'the Iraqi women', 'Pakistani women', 'Bulgarian women',
+'women in certain appearances', 'women who are mothers', 'women lacking self-care',
+'jealous women', 'unhappy women', 'arab women', 'muslim women', 'Swedish women',
+'powerful women', 'weaker women', 'privileged women', 'Vietnamese women',
+'young women in politics', 'English women', 'women from the West', 'women from the East',
+'women/girls', 'women in media', 'women over 60', 'dark-haired women', 'women in rural areas',
+'feminist women', 'ugly women', 'slender women', 'normal women', 'European women', 'White women',
+'blonde women', 'blond women', 'women in Iran', 'women from rural areas', 'Italian women',
+'Jewish women', 'unmarried women', 'Faroese women', 'women from Greenland', 'homeworking women',
+'Colombian women', 'women in Saudi Arabia', 'refugee women',
+'women who engage with multiple partners', 'Latvian women', 'women from rural Iceland',
+'immigrant women', 'pregnant women mothers', 'British women', 'Twiggy types (thin women)',
+'women in Kuwait', 'womens groups', 'women seeking partners', 'women priests', 'slim women',
+'rightist women', 'women in their 20s', 'working women', 'barstelpurnar (women in Thailand)',
+'women athletes', 'women buying utilitarian cars', 'women (as a group)', 'women in aviation',
+'religious women', 'women who have given birth', 'women from certain countries', 'innocent women',
+'women with academic qualifications', 'eldri konur', 'konur', 'Framsóknarkonur',
+'Franskar konur', 'háskólamenntaðar konur', 'Konur', 'listakonur', 'nigerískar konur',
+'gáfaðar konur', 'framsóknarkonur (Progressive Party women)', 'Akureyrarkonur',
+'Ísfirskar stelpur konur', 'Afganskar konur', 'alþýðukonur', 'færeyskar konur',
+'fiskvinnslu konur', 'kvennréttindakonur', 'hússkonur', 'athafnakonur', 'kvenfélagskonur',
+'Austfirskar konur', 'breskar konur', 'kvefaðar konur', 'flóttakonur',
+'einstæðar íslenskar konur', 'Samfylkingarkonur', 'Bleiku konurnar', 'kvenréttindakonur',
+'Eldri konur', 'vinstrisinnaðar konur', 'framsóknarkonur', 'póstburðarkonur', 'danska konur',
+'kerlingar', 'stútungskerlingar', 'akureyrskar kerlingar', 'dellukerlingar', 'kerlingaranginn',
+'kaffihúsakerling', 'nöldrara og tuðkerlinga', 'grátkellingarnir', 'kreditkellingar',
+'öfgakellingar', 'kellingarnar', 'Framsókn kelling', 'kúlukellingar', 'blúndukellingar',
+'Þróttara kellingar', 'kellingar', 'smástelpur', 'ungar iðnaðar-silicon-stelpur',
+'Þingholtsstelpur', 'Íslenskar stelpur', 'sveitastelpurnar', 'sveitastelpur',
+'Breiðavíkurstelpur', 'fermigarstelpurnar', 'stelpur', 'stúlkur', 'tékklenskar stúlkur',
+'píratastúlkur', 'gellurnar á Múlakaffi', 'Eyjapíur', 'Eyjapíur (Eyjapækur)', 'Swedish women', 'female politicians', 'females', 'woman', 'women', 'women in conservative societies')
+
+```
+
+```{r}
+ethnicity <- c(
+'negrastrákana', 'people of color', 'People of color', 'Black people', 'Afro-Americans',
+'black individuals', 'white individuals', 'White individuals', 'other ethnicities', 'individuals based on race',
+'Arabs', 'black people', 'young black people', 'young men of color', 'Middle Easterners',
+'Women of Middle Eastern descent', 'people from the Middle East', 'people in the Middle East',
+'people from Middle East', 'People from Middle Eastern countries', 'Middle Eastern nations',
+'Middle-Eastern countries', 'Middle Eastern leaders', 'women in the Middle East',
+'Middle Eastern customs', 'people of Middle Eastern descent', 'Middle Eastern cultures',
+'people of Middle Eastern religions', 'people in Middle Eastern countries',
+'immigrants from the Middle East', 'Middle-Easterners', 'Middle Eastern immigrants',
+'Middle Eastern dictatorships', 'nationalities from the Middle East',
+'Middle Eastern population', 'Middle Eastern individuals', 'Middle Eastern culture',
+'individuals from the Middle East', 'Middle East oil producers',
+'people in certain Middle Eastern countries', 'People from Middle East',
+'Middle Eastern extremists', 'Middle Eastern People', 'middle easterners',
+'people of the Middle East', 'people from the Middle East and Africa',
+'middle eastern people', 'women of color', 'Asian women', 'Arab women', 'black women',
+'African women in prostitution', 'large black women', 'women in Islamic countries',
+'múslimskar konur', 'Native Americans', 'African Americans', 'Black Americans',
+'African American', 'African American descendants', 'Indigenous Americans',
+'American blacks', 'Latin Americans', 'blökkumenn (African Americans)',
+'indigenous Americans', 'Blacks', 'Black persons', 'blacks', 'Black individuals',
+'black teachers', 'the black nation', 'black individuals in the USA',
+'blökkumenn (Black people)', 'black athletes', 'black families', 'black communities',
+'single black mothers', 'Black men', 'Blacks in America', 'black people in America',
+'Black', 'Black people in America', 'black men', 'black Jamaicans', 'black man',
+'black community', 'Black Africans', 'black children', 'Black People', 'black',
+'Black citizens', 'svart fólk (Black people)', 'black girls', 'black people from ghettos',
+'Black children', 'svertingjar', 'Svertingjar', 'svertingar', 'svertingja',
+'Sómalísvertingjar', 'asians', 'Asians', 'people of East Asian descent',
+'Asian individuals', 'Asian people', 'People of Asian descent', 'people from Asian descent',
+'Asian descent', 'people of Asian descent', 'East Asian', 'Asian men', 'Central Asians',
+'Asian nationals', 'Asian', 'Eurasian and African immigrants', 'eastern Asians',
+'people with Asian heritage', 'Eastern Asians', 'ásíubúar', 'Asíubúar',
+'Afríku og Asíu búar', 'Austur-Asíubúa', 'Africans', 'African immigrants',
+'African nations', 'African tribes', 'people of African descent', 'African children',
+'African people', 'African descent', 'African nationals', 'African refugees',
+'persons of African descent', 'African migrants', 'people of North African descent',
+'African descendants', 'black South Africans', 'African populations',
+'African population', 'People of African descent', 'African communities',
+'people in the poorest African countries', 'North Africans', 'Afríkuríki (African countries)',
+'North African migrants', 'African-Icelandic children', 'indigenous Africans',
+'African women', 'sub-Saharan Africans', 'African American people', 'African farmers',
+'descendants of Africans', 'native Africans', 'people from African descents',
+'African individuals', 'people from poor African countries', 'People with African ancestry',
+'people with African ancestry', 'african people', 'people from African countries',
+'vanþróaðar þjóðir í Afríku', 'Ruglaðir gaurar í Afríku', 'Afríkumenn', 'Norður Afríkumenn',
+'Afríkubúar', 'S-Afríkubúar', 'Afríkubúa', '"Afríkubúar"', 'Indian people',
+'Indian individuals', 'Chinese and Indian citizens', 'Kínverjar', 'Kínverjarnir',
+'kínverjar', 'Kínverjar (Chinese)', 'Chinese (Kínverjar)', 'Chinese', 'Chinese people', 'Chinese workers',
+'Chinese individuals', 'Chinese population', 'Chinese women', 'Chinese citizens', 'Chinese citizens', 'Chinese nationals', 
+'the Chinese', 'people of Chinese descent', 'Chinese tourists', 'Chinese laborers',
+'rich Chinese', 'poor Chinese', 'Chinese community', 'Chinese society', 'Chinese families',
+'Chinese speakers', 'Chinese immigrants', 'chinese', 'people from Eastern Europe',
+'eastern European laborers', 'Eastern European individuals', 'Eastern Europeans',
+'eastern europeans', 'Eastern European migrants', 'Eastern European mafia',
+'eastern Europeans', 'people in Eastern Europe', 'populations from Eastern European countries',
+'Eastern European farmers', 'Eastern European women', 'people of Eastern European descent',
+'Southeastern Europeans', 'people from old Eastern Europe', 'Eastern European immigrants',
+'Eastern European nations', 'workers from Eastern Europe',
+'people of Eastern European nationality', 'citizens in Eastern Europe',
+'eastern European nations', 'Eastern European workers',
+'individuals from Eastern Europe and Asia', 'eastern European criminals',
+'Eastern European crime organizations', 'nations in Eastern Europe', 'Austur-Evrópubúa',
+'Austur-Evrópuþjóðir', 'Austur-evrópumenn', 'Austur-Evrópubúar', 'austur-asíubúa',
+'negrar', 'NegrarNorðursins', 'negrastrákar', 'negra', 'negroes', 'Afrikan nationals', 'Arabaríkin', 'BIPOC', 'Baskar', 'Basques', 'Catalans','(specifically affected Eastern European populations)', 'Eastern Europe', 'Eastern European countries', 'Inuit', 'Kurdish people', 'Kurds', 'Kúrda', 'Kúrdar', 'Latino', 'Latinos', 'Persians', 'Rohingya people', 'Roma', 'Roma people', 'Romans', 'Róma fólk', 'Rómafólk', 'Slavs', 'Sígaunar', 'Uyghurs', 'White men', 'arabaþjóðir', 'blökkumenn', 'colored races', 'developing nations', 'ethnic groups', 'gypsies', 'hvíta stofninn', 'hvítingjarnir', 'hvítt fólk', 'marginalized racial groups', 'mixed-race', 'mið-austurlanda fólk', 'non-white individuals', 'people from Asia', 'people in Africa', 'people of different races', 'people of different skin colors', 'people with darker skin', 'svart fólk', 'svarta', 'svertingar', 'sígaunar', 'sígaunarnir', 'third world countries', 'underdeveloped countries', 'white individuals', 'white men', 'white people', 'white voters', 'white women', 'whites')
+
+```
+
+```{r}
+social_status <- c(
+'poor communities', 'háskólagengið fólk', 'those in authority positions',
+'plebbur (plebs)', 'poor people', 'elite individuals', 'rich people', 'those in power',
+'wealthy elites', 'almúgann', 'arðræningjar', 'unemployed', 'intellectuals',
+'powerful individuals', 'scholarly community', 'the Icelandic elite', 'workers',
+'wealthy', 'middle class', 'middle-class residents in downtown Reykjavík',
+'millistéttin (middle class)', 'lower middle class families', 'upper middle class',
+'middle-class citizens', 'middle-class individuals', 'millistéttarfólk (middle class)',
+'middle class consumers', 'lower and middle class', 'middle-class families',
+'the middle class', 'middle-income earners', 'middle-income individuals',
+'upper and middle class', 'middle-class taxpayers', 'middle-income and low-income people',
+'low and middle-income individuals', 'middle-income people', 'upper-middle class',
+'middle class feminists', 'middle-class businesses', 'middle-class residents',
+'low-income and middle-income individuals', 'people with middle incomes',
+'lower class women', 'high-paid women in Iceland', 'high-income women',
+'women in low-paid jobs', 'women in high-paid modeling jobs', 'women in low-wage jobs',
+'wealthy married women', 'wealty women', 'poor individuals', 'poor', 'the poor',
+'poor families', 'poor drug users', 'the poorly educated', 'poorly educated individuals',
+'poor children', 'poor Icelanders', 'poor laborers', 'poor students',
+'poorly educated people', 'poor immigrants', 'poor women',
+'unemployed or poor individuals', 'the poor and homeless', 'poor musicians',
+'poor workers', 'poor populations', 'the poor and elderly', 'the poor/unemployed',
+'foreign poor', 'poor drug dealers', 'poor uneducated people', 'poor farmers',
+'children from poor families', 'people with poor language skills',
+'the poor and vulnerable', 'individuals with poor language skills', 'urban poor',
+'poor patients', 'the weak and poor', 'poor buyers',
+'people who are poor or bankrupt', 'Icelandic poor', 'poor Icelandic families',
+'individuals with poor financial management', 'wealthy versus poor populations',
+'people who speak Icelandic poorly', 'poor men',
+'people with poor Icelandic language skills', 'poor citizens', 'poor households',
+'poor debtors', 'Poor people', 'poorer farmers', 'poor and vulnerable',
+'people with poor education', 'poorest individuals', 'wealthy versus poor',
+'wealthy and poor individuals', 'people with poor financial literacy',
+'wealthy vs. poor', 'local poor', 'poor whites', 'poor drivers', 'Poor whites',
+'öreiga (the poor)', 'the poor / working class', 'rich and poor', 'poor vs. rich',
+'the homeless and poor', 'poor population', 'poorer people', 'poor persons',
+'poorly educated', 'hungry poor', 'rich elites', 'rich', 'rich criminals', 'the rich',
+'rich individuals', 'rich elite', 'rich kids', 'very rich and powerful men',
+'ultrarich businesspeople', 'rich young men', 'rich upper class',
+'bankers and rich people', '10% richest', 'people who are rich', 'rich quota-holders',
+'newly rich individuals', 'richer groups', 'Icelandic rich', 'ultra-rich individuals',
+'ultrarich', 'newly rich families', 'rich men', 'rich and famous people',
+'newly rich Chinese', 'rich families', 'newly rich', 'rich Chinese', 'rich capitalists',
+'the rich elite', 'super-rich individuals', 'rich and powerful individuals',
+'rich entrepreneurs', 'rich and powerful people', 'rich business people',
+'richer individuals', 'new rich individuals', 'the elite or rich individuals',
+'rich children', 'newly rich Icelanders', 'new rich', 'richer people',
+'rich capital owners', 'the newly rich', 'rich fraudsters', 'filthy rich',
+'lower-class children', 'lower-class', 'lower-class workers', 'lower-class people',
+'lower-class individuals', 'low-class individuals', 'upper-class individuals',
+'upper-class women', 'upper-class feminists', 'upper-class', 'útrásarvíkingar',
+'íslensku útrásarvíkingarnir', 'útrásarvíkinga', 'útrásarvíkingarnir',
+'útrásarvíkíngarnir', 'f.v. útrásarvíkingar', 'útrásarvíkingur',
+'Íslensku útrásarvíkingarnir', 'útrásarVíkingarnir', 'útrásarvíkingapar',
+'útrásarvíkingunum', 'útrásarvíkingas', 'new útrásarvíkingar', 'útrásarvíkinganna',
+'útrásarvíkingum', 'kvótakóngar', 'kvótaklíka', 'afla- og kvótakóngar',
+'kvótakóngi', 'kvótakónga', 'kvótakóngarnir', 'kvótakóngana', 'kvótagreifarnir',
+'kvótabraskara', 'kvótabraskar', 'kvótavarðhundar', 'kvótabraskarar',
+'kvótabraskararnir', 'kvótagreifar', 'kvótagerðarmenn', 'kvótakall',
+'gamlar kvótasölugreifar', 'kvótapostular', 'kvótahafarnir', 'kvótaaðlinum',
+'Félópakk', 'öryrkjafýlu-offitusjúklingar', 'súperofuröryrkjar', 'bótaþegar',
+'bótahafar', 'efri millistétt', 'fólk í efri hluta tekjustigans', 'efri stétt',
+'efri-millistéttin', 'valda- og eignastéttin', 'yfirstéttin', 'valdastéttin',
+'millistéttin', 'valdstéttin á Íslandi', 'valdstéttin', 'kvennastéttir',
+'bændastéttin', 'vinnandi stéttir', 'millistéttir', 'yfirstéttir', 'valdastéttina',
+'borgarastéttina', 'láglaunastéttir', 'lágstéttir', 'forréttindastéttir',
+'Borgarastéttina', 'valdastéttir', 'hvíta millistéttin', 'lágstéttin',
+'karlastéttir', 'bændastéttina', 'lægra stéttir', 'hástéttin'
+)
+
+```
+
+```{r}
+age <- c(
+'children', 'youths', 'older women', 'women over 40', 'teenagers', 'youth',
+'young drivers', 'young offenders', 'middle ages', 'gray-haired men', 'elderly',
+'young people', 'older adults', 'younger generation', 'young men', 'young players',
+'young protesters', 'young families', 'young politicians', 'young women in leadership',
+'young girls', 'young readers', 'young women', 'young Icelanders',
+'younger police officers', 'young generation', 'young homebuyers', 'young generations',
+'younger generations', 'young professionals', 'young mothers',
+'young people from Ísafjörður', 'young people in rural areas', 'younger students',
+'younger individuals', 'young voters', 'young people from EU countries',
+'young journalists', 'young graduates', 'young individuals', 'younger people',
+'young adults', 'young homeowners', 'young musicians', 'young women with strollers',
+'the young generation', 'older vs younger generations', 'young Iceland',
+'younger population', 'younger Icelanders', 'young boys', 'young adults (18-23)',
+'the younger generation', 'young children', 'young educated people',
+'younger healthcare professionals', 'rich young men', 'young doctors',
+'younger drivers', 'young workers', 'young couples with debts',
+'younger rock enthusiasts', 'younger voters', 'young people receiving vaccinations',
+'young activists', 'healthy young individuals', 'young girls and women',
+'young healthy people', 'young and old Icelanders', 'young athletes',
+'young and unruly individuals', 'younger professionals', 'young people from South Iceland',
+'young leaders', 'younger women', 'young couples', 'young educated individuals',
+'young Europeans', 'young women in Reykjavik', 'young women in care',
+'young married or engaged women', 'children and young people',
+'students young people', 'young economists', 'younger employees', 'young woman',
+'young white males', 'younger managers', 'younger workers', 'young women from Russia',
+'young farmers', 'Young People', 'young entrepreneurs', 'young representatives',
+'Younger generations', 'young unemployed', 'young immigrants', 'Young parents',
+'young male drivers', 'Younger voters', 'younger audience',
+'young and unstable individuals', 'young students', 'families with young children',
+'young political candidates', 'young unemployed individuals', 'young women in Iceland',
+'young motorcyclists', 'young men with low education and income',
+'young members of political parties', 'young cyclists', 'young hosts',
+'younger adults', 'young educated Icelanders', 'the young', 'young talented people',
+'young political participants', 'elderly or younger age groups',
+'young adults living with parents', 'young men from Suðurnes', 'young Faroese',
+'young people in Faroe Islands', 'young parents', 'younger men',
+'unmarried young women', 'young people in Spain', 'young people in Greece',
+'young unemployed people', 'young men and women', 'young talented individuals',
+'young adult women', 'youth or young people', 'immature young adults',
+'unvaccinated young people', 'young unvaccinated people', 'young learners',
+'unskilled young people', 'young authors', 'young people living at home',
+'younger job applicants', 'younger mothers', 'young Norwegian workers',
+'young financial professionals', 'young boys and girls', 'young drug offenders',
+'young people in Europe', 'young football players', 'young foreign workers',
+'young radical people', 'young renters', 'Icelandic young players',
+'young right-wing voters', 'young engineers', 'young people and teachers',
+'young women in politics', 'young-generation', 'young males', 'younger players',
+'young people in Reykjavik', 'Young men', 'young audience',
+'young and middle-aged people', 'young fathers', 'young fishermen',
+'younger partners', 'younger citizens', 'older men with younger women',
+'Young people', 'younger families', 'young Icelandic men', 'young Icelandic women',
+'younger housewives', 'young white men', 'young people without higher education',
+'youngsters', 'young travelers', 'unemployed or young people', 'young females',
+'older people', 'older individuals', 'old people', 'older generations',
+'older Icelanders', 'older generation', 'the older generation', 'older voters',
+'old men', 'old politicians', 'older students', 'older politicians',
+'eldri borgarar (older citizens)', 'older men', 'old generation', 'older workers',
+'older individuals without financial saving', 'older drug users', 'older drivers',
+'old drivers', 'old workers', 'old candidates', 'old hippies', 'older citizens',
+'old conservative men', 'older members of the party', 'older fishermen',
+'older employees', 'older managers', 'older business professionals',
+'30-60 year olds', 'old women', 'older audience', '20-50 year old men',
+'old party members', 'old farmers', 'the old people', 'olders', 'older population',
+'Old people', 'older male politicians', 'older white men', 'older males',
+'18-23 year olds', '18-year-olds', 'old Icelanders', 'older actresses',
+'wealthy older men', '17-year-olds', 'old generations', '16 - 17 year olds',
+'old aristocrats', 'old age pensioners', 'older mothers', 'older sailors',
+'old individuals', '18-20 year olds', '70-year-olds', 'the old generation',
+'retirement fund holders', 'older boys', 'older dentists', 'older celebrities',
+'older tourists', 'old retirees', '17 year olds', 'older demographics',
+'older political figures', 'people aged 50 and older', 'certain older individuals',
+'older fathers', 'middle-aged men', 'middle-aged single men', 'middle age communities',
+'middle-aged social workers', 'middle-aged women', 'middle-aged people',
+'middle-aged', 'middle-aged Icelanders', 'white middle-aged conservative men',
+'middle-aged white men', 'white middle-aged men', 'fat middle-aged white men',
+'middle-aged lawyers or business professionals', 'middle-aged conservative men',
+'middle-aged politicians', 'middle-aged individuals', 'middle-aged white women',
+'middle-aged and elderly people', 'middle-aged Christian men',
+'middle-aged white heterosexual men', 'middle-aged vaccinated individuals',
+'middle-aged housewives', 'middle-aged males', 'middle-aged office workers',
+'middle-aged families', 'dark-haired middle-aged men', 'Middle-aged men',
+'middle-aged Eastern Europeans', 'middle-aged privileged individuals',
+'míðaldra karlar', 'miðaldra karlar með háskólapróf', 'hvíta miðaldra karla',
+'miðaldra hvítir hetrósexual karlmenn', 'eldra og miðaldra fólk',
+'menntaskólakrakkar', 'leiksólakrakka (presumably immature people)', 'krakkar',
+'landsbyggðarkrakka', 'sjallakrakkar', 'frjálshyggjukrakkarnir',
+'framhaldsskólakrakkar', 'Framhaldsskólakrakkar', 'krakkaskrattar',
+'sveitakrakkar', 'unglingar (youth)', 'unglingar', 'mothers of teenagers',
+'teenage boys', 'teenage girls', 'Icelandic teenage girls', 'children and teenagers',
+'uneducated teenagers', 'gamlingjar', 'gamla hipparnir', 'gamla liðinu',
+'gamla kommana', 'gamlar kvótasölugreifar', 'gamla fólksins', 'gamla hippa',
+'women over 40', 'Elderly', 'Elderly people' 
+)
+
+
+```
+
+```{r}
+nationality <- c(
+'Icelanders', 'people in the US', 'people in the USA', 'foreign prisoners',
+'immigrants', 'foreigners', 'foreign nationals', 'Americans', 'indigenous Icelanders',
+'foreign workers', 'migrants', 'people from Eastern Europe', 'Íslendingar',
+'Vietnamese', 'Iraqi people', 'Europeans', 'Swedes', 'Norwegians',
+'íslenskir hrokagikkir', 'Argentinians', 'developed countries',
+'ill-educated foreigners', 'Israel', 'Israelis', 'Israelis and Palestinians',
+'Israeli people', 'North Korea', 'Palestinians', 'British', 'Iranians', 'USA',
+'foreign tourists', 'Ameríkanar', 'Icelandic people', 'Danish people',
+'small island nations', 'fámenn eyríki', 'former colonies', 'Western nations',
+'Israelites', 'Italians', 'Germans', 'Grikkland', 'Kína', 'BNA (USA)',
+'the British', 'people in Iceland', 'Tibetans', 'Kínverjar', 'Hollendingar',
+'Lithuanians', 'Lithuanian women', 'people from Lithuania', 'Lithuanian men',
+'Litháarnir (Lithuanians)', 'Lithuania', 'Lithuanian people', 'Lithuanian speakers',
+'Thais', 'families from Thailand', 'people from Thailand', 'Thai',
+'Thai restaurant owners', 'thailenska konan (Thai woman)', 'Thai people',
+'women from Thailand', 'Thai women', 'people from northeastern Thailand',
+'Thai police', 'Tælendingar', 'Russians', 'Russian alcoholics',
+'Russian-speaking separatists', 'Russian people', 'Russian citizens',
+'wealthy Russians', 'Russian', 'russian public', 'Russian economy participants',
+'russian criminals', 'Russian-speaking people', 'Russian fishermen',
+'Russian and Ukrainian workers', 'russian-speaking people', 'Russians/Soviets',
+'russians', 'Ethnic Russians', 'ethnic Russians', 'Russian sympathizers',
+'people of Russian origin', 'Russian-speaking citizens', 'Russian speakers',
+'ethnic russians', 'russian-speaking individuals', 'Russian nationals',
+'Russian-speaking populations', 'people of Russian descent', 'Russian individuals',
+'Russian money holders', 'Russian People', 'Russian women', 'the Russians',
+'Russian children', 'Russian journalists', 'Russian population', 'Russian doctors',
+'Russian society', 'Russian-speaking nations', 'russian speakers',
+'white Christian Russians', 'white Americans', 'American society',
+'American population', 'North Americans', 'American citizens', 'American people',
+'American public', 'American women', 'American', 'white rural Americans',
+'young Americans', 'American tourists', 'American voters', 'American families',
+'American men', 'US Americans', 'British and Americans', 'americans',
+'West Americans', 'Irish-Americans', 'White Americans', 'rich Americans',
+'Bandaríkjamenn (Americans)', 'American People', 'American children',
+'uneducated Americans', 'the Americans', 'Scandinavian Americans',
+'American youth', 'Greenlanders', 'Greenlandic people', 'inhabitants of Greenland',
+'residents of Greenland', 'people living in Greenland', 'greenlanders',
+'residents of West Greenland', 'women from Greenland', 'Grænlendingar',
+'grænlendingar', 'Danish workers', 'people with Danish heritage', 'Danish speakers',
+'Danish', 'Danish citizens', 'Danish farmers', 'Danish society', 'Danish family',
+'Danir (Danish people)', 'Danish women', 'Danish public', 'Danish fanatics',
+'people who speak Danish', 'Danish criminals', 'foreign criminals',
+'foreign crime gangs', 'foreign women', 'foreign immigrants', 'foreign fishermen',
+'foreign stakeholders', 'foreign citizens', 'foreign nations', 'foreign individuals',
+'people from foreign countries', 'those supporting foreign interests',
+'foreign-born individuals', 'foreign countries', 'foreigner', 'foreign men',
+'foreign asylum seekers', 'foreign fishers', 'foreign labor', 'foreign residents',
+'people of foreign descent', 'foreign people', 'foreign families', 'foreign children',
+'uneducated foreigners', 'parents of foreign origin', 'foreign landlords',
+'foreign spouses', 'foreign nurses', 'foreign filmmakers', 'foreign thieves',
+'foreign mothers', 'Foreign workers', 'people from foreign cultures',
+'immigrants and foreigners', 'Foreign immigrants', 'foreign salesmen',
+'foreign sellers', 'foreign speakers', 'foreigner workers', 'foreign customs',
+'those who adopt foreign customs', 'being ruled by foreigners',
+'people with foreign surnames', 'foreigners seeking asylum',
+'foreign couples with children', 'people who sing in foreign languages',
+'people of foreign origin', 'foreign nursing professionals',
+'foreign healthcare workers', 'people from foreign descent', 'foreign invaders',
+'foreigneers', 'útlendingar', 'ESB útlendingar', 'aðrir útlendingar',
+'útlendar ljósmæður', 'útlendar flokkana', 'dökkir útlendingar', 'útlendinga',
+'útlendingar (foreigners)', 'útlendingum',
+'ólaglegur útlendingar (illegal immigrants)', 'Afghans', 'Albanian', 'Albanians', 'Algerians', 'Armenians', 'Austrian society', 'Austrians', 'BNA', 'BNA (United States)', 'Balkans', 'Baltic nations', 'Bandaríkjamenn', 'Belgians', 'Bosniaks', 'Bosnians', 'Bretar', 'British', 'British people', 'Britons', 'Brits', 'Brittish pilots', 'Canadians', 'Congo', 'Cossacks', 'Croats', 'Cuba', 'Czechs', 'Danes', 'Danir', 'Danmörk', 'Dutch', 'Egyptians', 'Estonians', 'Euro-Americans', 'European culture', 'European people', 'Europeans', 'Evrópuþjóðir', 'Eystrarsaltsbuar', 'Faroe Islanders', 'Filipino nationality', 'Filipinos', 'Finnar', 'Finnish Nationalists', 'Finnish farmers', 'Foreigners', 'Frakkar', 'France', 'French', 'French people', 'Færeyingar', 'Germans', 'Germany', 'Greek', 'Greeks', 'Grikkir', 'Haitians', 'Holland', 'Hollendingar', 'Honduras', 'Icelandic citizens', 'Icelandic men',  'Icelandic nation', 'Icelandic society', 'Immigrants', 'Indians', 'Indigenous Peoples', 'Indigenous people', 'Indverjar', 'Iran', 'Indónesar', 'Iranian', 'Iranian athletes', 'Iranian citizens', 'Iranians', 'Iraq', 'Iraqis', 'Irish', 'Irish people',  'Islendingar', 'Israeli', 'Israeli Nationals', 'Israeli citizens', 'Israeli nationals', 'Israeli people', 'Israelis', 'Israelites', 'Israelites/Palestinians', 'Israelsmenn', 'Italians', 'Italy', 'Japan', 'Japanese', 'Katalóníumenn', 'Kosovar', 'Kosovar Albanians', 'Kosovo Albanians', 'Könum', 'Libyans', 'Líbya', 'Macedonians', 'Mexican immigrants', 'Mexicans', 'N-Kóreu', 'Nigerians', 'Nordic people', 'Noregur', 'Norse people', 'North Korea', 'North Koreans', 'Norwegian Nationals', 'Norwegians', 'Palestinian', 'Palestinian people', 'Palestínumenn', 'Russia', 'Russian', 'Russian mafia', 'Russian Nationalists', 'Russian nationals', 'Rússar', 'Sameinuðu Arabísku furstadæmin', 'Saudi Arabia', 'Saudi Arabs', 'Saudis', 'Scandinavians', 'Scots', 'Scottish', 'Serbia', 'Serbians', 'Serbs', 'Skandinavíu', 'South Africans', 'South Americans',  'Spaniards', 'Svíar', 'Swedes', 'Swiss', 'Switzerland', 'Syria', 'Syrian refugees', 'Syrians', 'Tibetan people', 'Tibetans', 'Tunisians', 'Turkish people', 'Turkmens', 'Turks', 'Ukrainian citizens', 'Ukrainians', 'Western countries', 'Western nations', 'foreign drivers', 'færeyingar', 'illegal immigrants', 'immigrants', 'immigrants and foreigners', 'indigenous people', 'indigenous peoples', 'innflytjendur', 'israelis', 'native Europeans', 'native Icelanders', 'norrænna menn', 'nýbúar', 'palestinians', 'palestínska þjóðin', 'people from Bulgaria', 'people from Canada', 'people from Eastern Europe', 'people from Iran', 'people from Italy', 'people from Qatar', 'people from Romania', 'people from Sub-Saharan Africa', 'people from Switzerland', 'people from poor African countries', 'people in China and India', 'people in Palestine', 'people in USA', 'people in the U.S.', 'people of foreign descent', 'people of non-Icelandic descent', 'refugees and immigrants', 'residents of the US', 'the German populace', 'the Icelandic nation',  'the United States', 'utlendingar', 'white Americans', 'white Australians', 'Írakar', 'Írar', 'Þjóðverjar', 'íslendingar'
+)
+
+
+```
+
+```{r}
+polish <- c('Polish women', 'pólskar konur', 'polish gangs', 'Polish', 'Polish workers', 'Polish people', 'polish criminals', 'polish judges', 'Polish farmers', 'Polish men', 'Polish pilots', 'Polish soldiers', 'polish people', 'Poles (Polish people)', 'Polish fishermen', 'Polish nationals', 'Polish craftsmen', 'Polish dentists', 'Polish Icelanders', 'polish cleaners', 'Polish immigrants', 'polish immigrants', 'Polish doctors', 'Polish authorities', 'Pólverjar', 'pólverjar', 'pólverja', 'Pólverja', 'Pólverjar (Poles)', 'Poles', 'Polish', 'Pólarar')
+```
+
+```{r}
+religion <- c(
+'öfgamenn', 'children with religious upbringing', 'people with different religious beliefs',
+'believers', 'religions', 'religious groups', 'religious leaders', 'Christianity',
+'religious individuals', 'Christians', 'Christians/Catholics', 'religious people', 'clergy', 'theists',
+'professional biblical scholars', 'people of the church', 'Jews', 'Jewish people',
+'gyðingar', 'Gyðingar', 'Catholics', 'religious institutions', 'religious figures', 'faith',
+'church authority figures', 'church leaders', 'followers of Jesus Christ', 'Gnostics',
+'critics of Christianity', 'religious believers', 'Mormons', 'believers in Christianity',
+'those who believe in biblical accounts', 'preachers',
+'people who believe in faith-based practices', 'the religious', 'theistic believers',
+'religious beliefs', 'people with strong faith', 'people with faith', 'the church',
+'Abrahamic religions', 'people who believe in religion', 'strong Christians',
+'Christian priests', 'Catholic Church', 'kaþólska kirkjan', 'believers in Jesus',
+'Christian believers', 'christians', 'people questioning religious beliefs',
+'heilagsandahoppur', 'Buddhists', 'Atheists', 'fundamentalists', 'Christian leaders',
+'followers of Dalai Lama', 'people with religious beliefs',
+'those who hold religious beliefs', 'secular individuals', 'people who believe in God',
+'people of faith', 'religious communities', 'monotheists', 'religion',
+'followers of the Bible', 'members of the national church', 'kirkjan',
+'Christian fundamentalists', 'those who follow Biblical orders',
+'state church members', 'believers in God', 'Kristnir menn', 'Wstboro Baptists',
+'Kristnir', 'members of the church', 'religious right', 'religious minorities',
+'people with strong religious beliefs', 'other religious groups',
+'religious organizations', 'religious parents', 'children of religious parents',
+'believers in different interpretations of religion',
+'people with differing religious views',
+'individuals with differing religious interpretations', 'other religions',
+'certain religious groups', 'those with religious beliefs',
+'the religious or spiritual community', 'Religious leaders',
+'people believing in religious prophecies', 'Religion',
+'people who follow Abrahamic religions',
+'proponents of various religious texts', 'religious fundamentalists',
+'people who practice religion', 'Jewish religion', 'specific religions',
+'people who believe in different religious interpretations',
+'people with religious opinions', 'followers of primitive religions',
+'those who follow religious sentiment', 'religious extremists',
+'religious authorities', 'people of different religions', 'religious practitioners',
+'other non-Christian religions', 'religious groups (Christians vs Muslims)',
+'believers in different religions', 'religious followers', 'foreign religions',
+'all religions', 'specific religious groups', 'religious officials',
+'people with anti-religious sentiments', 'those raised in a religious environment',
+'those with religious upbringing', 'religious schools',
+'people who follow religious texts', 'religious', 'religious community',
+'believers in religious myths', 'people who misunderstand religion',
+'those who commit violence in the name of religion',
+'people who rely on religious moral frameworks',
+'people with differing religious beliefs', 'religious conservatives',
+'believers in religion', 'followers of religion', 'believers of different religions',
+'believers of certain religions', 'speakers of religion',
+'moralists/religious adherents', 'members of religious groups', 'religious belief',
+'followers of organized religion', 'religious scholars',
+'people following religious laws', 'those who follow religious teachings',
+'believers in organized religion', 'religious authors',
+'people following religious beliefs', 'people of other religions',
+'people with religious affiliations', 'individuals practicing religion',
+'people following false religions', 'organized religion',
+'extreme religious groups',
+'those who follow structured methodologies in religion',
+'gullible individuals donating to religious figures',
+'people who donate to religious organizations', 'religious zealots',
+'foreign religious groups', 'critics of religious beliefs',
+'Religious individuals', 'those of different religions',
+'followers of various religions', 'followers of other religions',
+'people carrying religious texts', 'religion advocates', 'religious officiants',
+'people who follow religious beliefs', 'other religious denominations',
+'people with varying expertise in religious matters',
+'extreme religious individuals', 'Other religions',
+'members of certain religious groups', 'Religious groups',
+'minor religious groups', 'irreligious people', 'religious experts',
+'minoritized religious groups', 'members of religious institutions',
+'believers in other religions', 'people who are religious',
+'specific religious followers', 'religious majority',
+'followers of different religions', 'Religious People', 'organized religions',
+'people who interpret religious texts', 'religious faith',
+'followers of specific religious beliefs',
+'people of various religions and non-religious people',
+'people who interpret religious texts literally', 'those who are religious',
+'those with different religious backgrounds', 'believers of religious faiths',
+'people of certain religions', 'certain religions', 'religious movements',
+'followers of certain religious beliefs',
+'conservative religious individuals', 'self-righteous religious individuals',
+'people who reject religious morals', 'believers of other religions',
+'North American religious groups', 'the religious community',
+'believers in religious texts', 'those in religious institutions',
+'religious bloggers', 'different religious groups', 'religious persons',
+'people involved with religious institutions', 'followers of religions',
+'people who believe in God or religious texts', 'the deeply religious',
+'people involved in religion',
+'believers in supernatural or religious ideologies',
+'people involved in religious political organizations',
+'religious fanatics', 'beliefs of religious individuals',
+'people who follow religious organizations', 'minority religions',
+'members of religious organizations', 'different religions',
+'fundamentalist religious groups', 'individuals holding differing religious views',
+'people who read religious texts', 'religious educators',
+'religious interpreters', 'people who believe in different religions',
+'individuals who believe in non-atheistic religions', 'religious group',
+'people based on religion', 'different religious beliefs',
+'followers of certain religions', 'others (related to religion)',
+'Religious people', 'religious professionals',
+'children from different religious backgrounds',
+'People subscribing to the religion',
+'people who practice foreign religions',
+'other religious organizations',
+'children raised in religious environments',
+'believers in religious faith', 'those who believe in religion',
+'people who misuse religion', 'believers of a religion',
+'religious Christians', 'certain religious individuals',
+'people interpreting religious texts',
+'people who misuse religious texts', 'religious academics',
+'religious individuals opposed to LGBTQ+ rights', 'people using religion',
+'people who believe in religious authority',
+'religious institutions and their followers',
+'literalist religious groups', 'people associated with religious activities',
+'those who hold prejudiced views based on religious beliefs',
+'extremist religious people', 'believers of various religions',
+'people who hold opposing views on religion',
+'people from religious communities', 'general religious followers',
+'people with different religions', 'critics of religion',
+'people practicing certain religious rituals',
+'theists or religious groups', 'Christian religious groups',
+'people with religious authority', 'Religious Fundamentalists',
+'followers of religious belief', 'people engaged in religious faith',
+'individuals with religious beliefs',
+'dictators and religious organizations', 'non-native religions',
+'believers of religions', 'religious individuals (priests)',
+'followers of Abrahamic religions',
+'people following religious doctrine',
+'those who participate in religious rituals', 'monotheistic religions',
+'religious leaders or institutions', 'religious enthusiasts',
+'those with strong belief in religion', 'religious clergy',
+'believers or followers of religion', 'those who follow religions',
+'people who practice religions', 'those who use religion in governance',
+'religious sects', 'individuals who believe in religion', 'religious men',
+'people in religious positions', 'followers of religious creationism',
+'traditional religions', 'structured religions',
+'members of certain religious organizations', 'religious community members',
+'those who believe in non-religious perspectives',
+'followers of religious beliefs',
+'community members opposing religious participation',
+'mainstream religious institutions', 'Religious institutions',
+'people of Eastern religions', 'state-funded religious organizations',
+'members of other religions', 'extremist religious individuals',
+'religious doctrines', 'people in religious leadership',
+'believers of certain religious beliefs', 'prosperous religious groups',
+'people of certain religions or national origins',
+'practitioners of religion', 'people involved in cults/religions',
+'religious people who have strong beliefs', 'religionists',
+'people in religious institutions', 'religious members',
+'people interested in religious texts', 'traditional religious believers',
+'other religious followers', 'believers of old religions',
+'people who believe in other religions', 'religious adherents',
+'religious literalists', 'people who misinterpret religious texts',
+'followers of non-Abrahamic religions', 'religious devotees',
+'religion (Protestantism)', 'people who do not share the same religious views',
+'people who promote religious beliefs over science',
+'self-defined religious groups', 'people in religious groups',
+'those of different race or religion', 'small religious communities',
+'individuals who hold different religious views',
+'people who hold extreme religious beliefs', 'unaffiliated religious groups',
+'speaking subjects of subjects like languages or religion',
+'those who follow religion', 'men in religious institutions',
+'religious granters', 'religious denominations',
+'People who believe in religion', 'state and organized religions',
+'institutional religion', 'strict religions', 'Modern religions',
+'those who follow religious traditions', 'Religious fanatics',
+'religions including Jéhovahs Witnesses and Catholics',
+'European religious people',
+'religious individuals (specifically the Catholic Church)',
+'people of different races and religions', 'fundamentalist religions',
+'followers of dominant religions', 'people with religious differences',
+'people in religious communities', 'people who compare religious texts',
+'believers in religious doctrines',
+'people involved in religious organizations', 'those who interpret religion',
+'religiously marginalized groups', 'individuals involved in religious discussions',
+'people with religions', 'primitivist religions', 'follower of religions',
+'followers of a specific religion', 'people with religious belief',
+'people who use religious texts to justify slavery and violence',
+'religious individuals who overlook the morality of their texts',
+'people without religious affiliation', 'people with certain religious beliefs',
+'people who follow religious rules', 'certain groups of religious individuals',
+'followers of certain religious traditions',
+'children of different religions', 'non-abrahamic religions',
+'religious apologetics', 'believers in organized religions',
+'members of organized religion', 'supporters of organized religions',
+'followers of organized religions', 'people who believe in religions',
+'different religious practitioners', 'non-Christian religious groups',
+'believers (religious people)', 'followers of religious practices',
+'religious characters', 'believers of various religious creation myths',
+'those who interpret religious texts',
+'believers in different religious concepts', 'religious politicians',
+'people who express religious beliefs',
+'individuals with strong religious beliefs',
+'people who support religions', 'particular religions',
+'people discussing Vodou religion', 'people who follow religion',
+'church/religious leaders',
+'people who support state-funded religious institutions',
+'religious leaders/rainbow priests', 'old religions',
+'individuals practicing literal interpretations of religion',
+'believers in literal interpretation of religious texts',
+'interpreters of religious texts', 'religous women', 'Adventists', 'Catholics and Protestants', 'Christian Zionists', 'Christian asylum seekers', 'Christian community', 'Christian extremists', 'Christian nations', 'Christian people', 'Eastern Orthodox Christians', 'Greek Orthodox', 'Hindus', 'Hindúar (Hindus)', 'Hvítasunnusöfnuðurinn', 'Israeli Jews', 'Jehovah\'s Witnesses', 'Jewish', 'Jewish community', 'Jewish extremists', 'Protestants', 'Rússneska rétttrúnaðarkirkjan', 'Sjöunda dags Aðventistar', 'Waldensians', 'Western Christians', 'White Christians', 'bókstafstrúarfólki', 'bókstafstrúaða', 'catholics', 'churchgoers', 'creationists', 'evangelical Christians', 'evangelicals', 'extremist Christians', 'followers of faith', 'jews', 'kristin trú', 'kristið fólk', 'kristnar', 'kristni', 'kristnir', 'mormons', 'ofsatrúarmenn', 'ofurkrissar', 'other religions', 'pagan believers', 'people adhering to Jewish faith', 'people involved in religion', 'people of different religions', 'people of faith', 'people of other religions', 'traditional Christians', 'white Christians' 
+)
+
+
+```
+
+# ATH! Á að hafa Al Quada, Al-Quada, Al-Quada members, Al-kaida og AlQueda fólk með hér?
+```{r}
+muslim <- c(
+'Muslims','íslam', 'múslímar','íslamista', 'íslamistum', 'íslamistar', 'islam', 'Islam',
+'Islamskir fræðimenn', 'Islamists', 'Islamic extremists', 'women in Islam',
+'followers of Islam', 'islamists', 'Islamic countries', 'radical Islamists',
+'Islamic culture', 'islamist groups', 'followers of islam', 'Islamic terrorists',
+'european Islamists', '“Islam”', 'individuals opposing violent interpretations of Islam',
+'islamsku norsku ríkisborgara', 'individuals associated with Islam', 'Islam adherents',
+'people from Islamic backgrounds', 'people of the Islamic faith', 'Islamist Extremists',
+'Islamic State', 'Islamic Extremists', 'Islamist extremists', 'islamista',
+'Islamic nations', 'Islamic individuals', 'people who leave Islam',
+'believers of Islam', 'Islam followers', 'people discussing Islam', 'Islamic community',
+'Islamic leaders', 'Islamic groups', 'Radical Islamists', 'Islamska samtök',
+'Islamistarnir', 'Islamic Groups', 'Islamic immigrants', 'people who support Islam',
+'Islamic women', 'Islamic teachers', 'those sympathetic to Islam',
+'Íslamistar (Islamists)', 'Different Islamic sects', 'Islamic scholars',
+'believers in Islam', 'Islamic followers', 'Islamism',
+'people criticizing Islamic jurisprudence', 'people from Islamic countries',
+'Christian and Islamic teachings', 'people adopting Islam', 'supporters of Islam',
+'Islamic Men', 'Islamistar', 'Islamic jihadists', 'Islamic Jihad', 'Islamic world',
+'Followers of Islam', 'ISLAM', 'Islam believers', 'Sunni Islam', 'people of Islam',
+'Islamic states', 'Islam supporters', 'extremist Islamists', 'Islamist communities',
+'Islams', 'people who travel to Islamic countries', 'Islamic people',
+'people who buy books about Islam', 'islamic individuals',
+'people with Islamic names', 'women in Islamic countries',
+'nationality of Islamic countries', 'Islamic organizations', 'Islamic men',
+'those who misinterpret Islam', 'proponents of Islam', 'múslimar', 'múslimun',
+'Múslimar', 'Múslima', 'öfgamúslimar', 'Múslimum', 'múslima',
+'múslimskir karlmenn', 'múslimum', 'múslimatrúar', 'múslimir', 'múslimska homma',
+'múslimska', 'múslimskra hryðjuverkasveita', 'múslimskar konur', 'Súnní múslimar',
+'Bræðralag Múslima', 'múslimaríkin', 'Súnní Múslimar', 'öfgamúslima',
+'Úrslit Múslima', 'múslimakonur', 'múslima-ríki', 'múslimaríkjum', 'músliminn',
+'Sunni múslimar', 'Öfgamúslimar', 'Múslimir', 'Múslima/ Múslimar',
+'múslimsku landanna', 'múslimi', 'múslimarnir', 'muslims', 'Muslim communities',
+'Muslim groups', 'Muslim Brotherhood', 'Muslim women', 'Muslim countries',
+'Muslim men', 'migrant Muslims', 'immigrants from Muslim countries', 'muslim',
+'Muslim individuals', 'Muslim community', 'Muslim refugees', 'Muslim extremists',
+'former Muslim women', 'extremist Muslims', 'Arabs (Muslims)', 'Ahmadiyya Muslims',
+'Muslims and Jews', 'muslim community', 'muslim countries', 'specific Muslim countries',
+'Muslim-majority countries', 'Muslim migrants', 'margarísar',
+'Muslims and immigrants', 'Muslim states', 'Muslim', 'Muslims and Christians',
+'Muslim people', 'Muhammadan Muslims', 'Shia Muslims', 'muslim men',
+'Muslim immigrants', 'Bosnian Muslims', 'Sunni Muslims', 'Muslims in general',
+'muslim populations', 'muslim immigrants', 'Muslim population', 'Muslim nations',
+'muslimar', 'Christians and Muslims', 'Mu Muslims', 'foreigners from Muslim countries',
+'Christian and Muslim communities', 'muslima', 'Rohingya Muslims', 'young Muslims',
+'Muslims in Russia', 'Muslim populations', 'fathers in Muslim culture',
+'Danish Muslims', 'Muslims and people from the Middle East',
+'Muslims in Western China', 'muslim women', 'people from Muslim backgrounds',
+'Muslima', 'extreme muslims', 'Turkish Muslims', 'Arabs/Muslims',
+'Súnní og Shíamuslima', 'Muslim clerics', 'muslim clerics', 'Muslimar',
+'refugees from Muslim countries', 'MUSLIM', 'Syrians and Muslim countries',
+'Shia and Sunni Muslims', 'Arab-Muslims', 'General Muslim Population',
+'m Muslims', 'foreign Muslims', 'muslimaríkjum', 'Shiite Muslims',
+'certain nationalities (Muslims)', 'Arabs and Muslims', 'muslim people',
+'Muslim Arabs', 'Pakistani Muslims', 'Iranian Muslims', 'Múhameðska villimenn',
+'Múhameðstrúarmenn', 'Múhameðsfólk', 'múhameðstrúarmenn',
+'Múhameðs fylgismenn', 'Múhameðstrúar', 'Múhameðskra', 'múhameðskir',
+'Múhameðskur', 'múhameðstrú', 'Múhameðska villimennzkunni', 'Múhameðski menning',
+'Múhameðstrúarmanna', 'Múhameðsmenn', 'Múhameðskir flóttamenn', 'Múhameð',
+'Múhameðskra villimanna', 'Múhameðsku', 'múhameðskur lýður', 'Múhameðstrúar fólk',
+'Múhameðska', 'Múhameðskir', 'Múhameðska skrælingja', 'Múhameðsku landanna',
+'Múhameðstrú', 'múhameðstrúarmönnum', 'Múhameðsku Arabs',
+'Múhameðskum villimanna', 'Múhameðstrúar hyskið', 'Múhammeds fylgjendur',
+'Múhameðstrúar einstaklingar', 'Múhameðska fólk', 'Múhameðskur fólks', 'Muslima', 'Múhameðska skrælingja', 'Múhameðskra', 'Múhameðstrú', 'Sunnis', 'Sunnítar', 'Shia', 'Súnní Arabar', 'Súnní og Shíamuslima', 'Wahhabis', 'muslim', 'muslims', 'múslíar', 'people of Middle Eastern religions', 'proponents of Islam' )
+
+
+```
+
+```{r}
+library(dplyr)
+
+presence_threshold <- 3
+
+# helper to show per-group counts (unique comment × generalized)
+.ctr <- function(df, tag) {
+  df %>%
+    distinct(comment_id, generalized) %>%
+    count(generalized, sort = TRUE) %>%
+    mutate(step = tag)
+}
+
+# START: all generalizations (after you’ve built the collapsed 'generalized' label)
+s0 <- .ctr(gen, "all generalizations")
+
+# 1) Apply certainty threshold
+s1 <- .ctr(filter(gen, group_generalization_presence >= presence_threshold),
+           "presence ≥ 3")
+
+# 2) Join to comments that have hate labels (this is where big drops usually happen)
+comments_hate <- comments %>%
+  transmute(comment_id, hate_any = hate_speech_presence > 0)
+
+g2 <- gen %>%
+  filter(group_generalization_presence >= presence_threshold) %>%
+  inner_join(comments_hate, by = "comment_id")
+
+s2 <- .ctr(g2, "after join to hate labels")
+
+# 3) Drop NA hate labels if any remain (belt-and-suspenders)
+s3 <- .ctr(filter(g2, !is.na(hate_any)), "after drop NA hate")
+
+# 4) (Optional) apply any other filters you use in that figure (uncomment/adjust)
+#g3 <- g2 %>% filter(language == "is")
+#g3 <- g3 %>% filter(date >= as.Date("2020-01-01"))
+#g3 <- g3 %>% filter(source == "Moggablogg")
+#s4 <- .ctr(g3, "after other filters")
+
+# 5) Final data that the dot+CI plot uses (one row per comment × group)
+gen_for_plot <- g2 %>% distinct(comment_id, generalized, hate_any)
+s_final <- .ctr(gen_for_plot, "final plot data")
+
+# Compare
+bind_rows(s0, s1, s2, s3, s_final) %>%
+  arrange(step, desc(n))
+
+
+```
+
+
+```{r}
+lgbtq <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%lgbtqiap]] %>% unique() 
+relig <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%religion]] %>% unique()
+nation <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%nationality]] %>% unique()
+#ag <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%age]] %>% unique()
+#socstat <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%social_status]] %>% unique()
+ethn <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%ethnicity]] %>% unique()
+wom <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%women]] %>% unique()
+disab <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%disability]] %>% unique()
+musl <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%muslim]] %>% unique()
+tra <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%trans]] %>% unique()
+pol <- groups$comment_id[groups$group_id%in%groupn$id[groupn$name%in%polish]] %>% unique()
+
+
+gengroup <- data.frame(
+  comment_id = c(lgbtq, relig, nation, ethn, wom, disab, pol, tra, musl),
+  generalized = c(
+    rep("LGBTQIA+",   length(lgbtq)),   # merged label
+    rep("Religion",   length(relig)),   # merged label
+    rep("Nationality",length(nation)),  # merged label
+    rep("Ethnicity",  length(ethn)),
+    rep("Women",      length(wom)),
+    rep("Disability", length(disab)),
+    rep("Nationality",length(pol)),     # Polish -> Nationality
+    rep("LGBTQIA+",   length(tra)),     # Trans -> LGBTQIA+
+    rep("Religion",   length(musl))     # Muslim -> Religion
+  )
+) %>%
+  dplyr::mutate(comment_id = as.numeric(comment_id)) %>%
+  dplyr::distinct(comment_id, generalized)   # prevent double-counts
+
+gengroup$comment_id <- as.numeric(gengroup$comment_id)
+gen <- dat %>% dplyr::left_join(gengroup, by = "comment_id") %>%
+       dplyr::filter(!is.na(generalized))
+
+```
+
+
+
+```{r}
+ggplot(gen, aes(x=generalized, fill=factor(group_generalization_presence))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Group generalization:') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+chisq.test(table(gen$group_generalization_presence, gen$generalized))
+
+ggsave('group_generalization.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+# gen %>%
+#   mutate(generalized = fct_reorder(generalized, hate_speech_presence)) %>%
+# ggplot( aes(x=generalized, fill=factor(hate_speech_presence>0))) +
+#   geom_bar(position='fill') +
+#   scale_y_continuous(labels = scales::percent_format()) +
+#   coord_flip() +
+#   scale_fill_viridis_d(name='Hate speech presence:') +
+#   xlab('') +
+#   ylab('') +
+#   theme_classic() + 
+#   theme(legend.position = 'top')-> p1
+
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(scales)
+
+presence_threshold <- 3
+
+# 1) Denominator: all comments with a generalization (presence ≥ 3), one row per (comment, group)
+gen_base <- gen %>%
+  filter(group_generalization_presence >= presence_threshold) %>%
+  # merge groups on the label
+  mutate(
+    generalized = as.character(generalized),
+    generalized = dplyr::case_when(
+      generalized %in% c("LGBTQIA+ excl. trans", "Transgender") ~ "LGBTQIA+",
+      generalized %in% c("Nationality excl. Polish", "Polish")  ~ "Nationality",
+      generalized %in% c("Religion excl. muslim", "Muslim")     ~ "Religion",
+      TRUE ~ generalized
+    ),
+    generalized = factor(generalized)
+  ) %>%
+  # keep one row per (comment, merged group)
+  distinct(comment_id, generalized)
+
+# 2) Bring in hate labels and keep labeled rows; compute hate_any
+plot_df <- gen_base %>%
+  left_join(comments %>% select(comment_id, hate_speech_presence), by = "comment_id") %>%
+  filter(!is.na(hate_speech_presence)) %>%
+  mutate(hate_any = hate_speech_presence > 0)
+
+# 3) Order groups by hate proportion (largest will appear at the TOP once flipped)
+plot_df <- plot_df %>%
+  mutate(generalized = fct_reorder(generalized, hate_any, .fun = mean))
+
+# 4) n labels (denominator actually used in the stacked bars: labeled comments per group)
+n_by_group <- plot_df %>%
+  count(generalized, name = "n_labeled") %>%
+  mutate(n_label = paste0("n=", scales::comma(n_labeled)))
+
+# 5) Prettier stacked proportion bars, 0–100%, n’s at the right edge
+p_bar <- p_bar +
+  theme_classic(base_size = 13) +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "top",
+    plot.margin = margin(t = 10, r = 60, b = 10, l = 10)
+  )
+
+ggsave("group_generalization_hate_stacked2.png",
+       plot = p_bar, bg = "white",
+       width = 2400, height = 1200, units = "px", dpi = 300, device = "png")
+
+```
+
+
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+  mutate(generalized = fct_reorder(generalized, hate_speech_presence)) %>%
+ggplot( aes(x=generalized, fill=factor(hate_speech_presence>0))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Hate speech presence:') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top')-> p1
+
+chisq.test(table(gen$hate_speech_presence, gen$generalized))
+
+ggsave('group_generalization_and_hate_speech_3plus.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+# Skoða group generalization á móti öllum tilfinningum (amk emotion_anger), en bara þegar group_generalization er 4 eða hærra (þegar við erum viss með hópana) 
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_anger))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Anger') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_anger.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_joy))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Joy') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_joy.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_sadness))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Sadness') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_sadness.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_fear))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Fear') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_fear.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_disgust))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Disgust') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_disgust.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_surprise))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Surprise') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_surprise.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_contempt))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Contempt') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_contempt.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+```{r}
+gen %>%
+  filter(group_generalization_presence>=3) %>%
+ggplot(aes(x=generalized, fill=factor(emotion_indignation))) +
+  geom_bar(position='fill') +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_viridis_d(name='Indignation') +
+  xlab('') +
+  ylab('') +
+  theme_classic() + 
+  theme(legend.position = 'top') -> p1
+
+ggsave('group_generalization_indignation.png', p1, bg='white', width = 1800, height = 1200, units = "px", scale=0.9)
+```
+
+
+# í stað stóru myndarinnar gera fjórar myndir
+   nationality therof polish 
+   religion therof muslim
+   sexual_orientation therof trans
+   konur sér
+
+
+# Bíða eftir Steinunni
+
+# Gera time trend in emotion leiðrétt aftur (hvaða mælingar eiga að vera í time trend módeli)
+
+# Gera þá mynd "raw" fyrir sömu breytur, þannig að það sé samræmi.
+
+
+# Figure 5 time trend in hate speech
+
+```{r}
+ncomms <- comments %>% 
+  filter(as.Date(dt) > '2010-01-01') %>%
+  select(dt) %>%
+  mutate(month = floor_date(dt, "months")) %>%
+  group_by(month) %>%
+  summarize(N = n()) %>%
+  ungroup() 
+
+
+timetrend <- gen %>% 
+  filter(as.Date(dt) > '2010-01-01') %>%
+  select(dt, generalized, hate_speech_presence) %>%
+  mutate(month = floor_date(dt, "months")) %>%
+  group_by(month, generalized) %>%
+  summarize(i = n()) %>%
+  ungroup() %>%
+  left_join(ncomms) %>%
+  mutate(hlutfall = i/N)
+  
+```
+```{r}
+timetrend %>%
+  ggplot(aes(x=month, y=hlutfall)) +
+  theme_minimal() +
+  geom_line() +
+  facet_grid(generalized~.) +
+  xlab('Time of the comment') +
+  ylab('Proportion of comments') -> p5
+
+ggsave('proportion_of_comments_per_generalized.png', p5, bg='white', width = 3000, height = 3000, units = "px")
+```
+
+```{r}
+ggplot(gen, aes(x=generalized)) +
+  geom_bar() +
+  coord_flip() +
+  theme_minimal() + 
+  ylab('Number of comments') +
+  xlab('Generalized group') -> p6
+
+ggsave('number_of_comments_per_generalized.png', p6, bg='white', width = 3000, height = 3000, units = "px")
+```
+

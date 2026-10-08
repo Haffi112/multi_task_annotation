@@ -1,0 +1,21 @@
+# data (shared via OSF, not git)
+inputs/*.db
+inputs/annotations_deidentified.csv
+# large or text-bearing intermediates
+outputs/*/model_data/
+outputs/*/peak_windows/
+outputs/*/supplement/*.aux
+outputs/*/supplement/*.log
+outputs/*/supplement/*.fls
+outputs/*/supplement/*.fdb_latexmk
+outputs/*/supplement/*.out
+logs/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+# unpublished manuscript text stays out of the public repository (it lives in Overleaf);
+# the supplement's figures and group_mapping.csv are tracked
+baseline/*.tex
+outputs/*/supplement/*.tex
+outputs/*/supplement/*.pdf
