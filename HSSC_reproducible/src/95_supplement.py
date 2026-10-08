@@ -178,7 +178,7 @@ def s19() -> str:
             "$\\geq$3 (Figure 1), over all annotations and separately over annotations made with and without the "
             "optional feedback, which told annotators after each label whether it agreed with the model. "
             "Difference: annotation-level $\\kappa$ with minus without feedback, with a 95\\% interval from 2,000 "
-            "bootstrap resamples of annotators. Among the "
+            "bootstrap resamples of annotators. The $\\kappa$ over all annotations can be higher than both subset values (for example for sentiment) because majority labels are more reliable when all annotators of a comment are pooled. Among the "
             f"{int(pooled.annotators_both)} annotators who labelled the seven 0--4 dimensions both with and "
             f"without feedback, annotation-level $\\kappa$ was {f(pooled.kappa_ann_on_within)} with and "
             f"{f(pooled.kappa_ann_off_within)} without. Model 0/4: $\\kappa$ restricted to comments the model "
@@ -186,7 +186,7 @@ def s19() -> str:
             "otherwise) over comments with at least two annotators.")
     return table("Human--model and inter-annotator agreement for the eight analysed dimensions.", "tab:S19",
                  "lrrrrrrrr", r"Dimension & Labels & Feedback on & $\kappa$ & $\kappa$ with & $\kappa$ without & "
-                 r"Difference [95\% CI] & Model 0/4 & $\alpha$", rows, note, size=r"\footnotesize")
+                 r"Difference (annotation-level) [95\% CI] & Model 0/4 & $\alpha$", rows, note, size=r"\footnotesize")
 
 
 def s20() -> str:
